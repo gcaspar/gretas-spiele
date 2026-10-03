@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gretas Spiele</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --lila: #8e44c9;
+    --lila-dunkel: #5b2386;
+    --tuerkis: #2ec4b6;
+    --tuerkis-dunkel: #13867b;
+  }
+  body {
+    margin: 0; min-height: 100vh;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #2b1840;
+    background: linear-gradient(135deg, #b77ee6 0%, #8e6fe0 45%, #3fd0c3 100%);
+    background-attachment: fixed;
+    padding: 32px 16px 48px;
+  }
+  .kopf { text-align: center; color: #fff; }
+  .tiere { font-size: 84px; line-height: 1; display: flex; justify-content: center; gap: 70px; }
+  .tiere span { display: inline-block; animation: huepfen 2.4s ease-in-out infinite; }
+  .tiere .reh { animation-delay: 1.2s; }
+  .spiegeln { transform: scaleX(-1); }
+  @keyframes huepfen {
+    0%, 100% { translate: 0 0; }
+    50%      { translate: 0 -10px; }
+  }
+  h1 {
+    font-size: 64px; margin: 14px 0 6px; letter-spacing: 1px;
+    text-shadow: 3px 3px 0 var(--lila-dunkel), 6px 6px 0 var(--tuerkis-dunkel);
+  }
+  .gruss { font-size: 22px; max-width: 620px; margin: 0 auto 36px; line-height: 1.5; }
+  .spiele {
+    display: grid; gap: 24px; max-width: 900px; margin: 0 auto;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .karte {
+    background: #fff; border-radius: 24px; padding: 26px 24px;
+    border: 5px solid var(--tuerkis);
+    box-shadow: 0 10px 0 var(--lila-dunkel);
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  .karte .bild { font-size: 66px; }
+  .karte h2 { margin: 8px 0 6px; font-size: 26px; color: var(--lila-dunkel); }
+  .karte p { font-size: 17px; line-height: 1.5; margin: 4px 0 16px; }
+  .karte .klein { font-size: 14px; color: #6d5a80; margin-top: -6px; }
+  .knopf {
+    margin-top: auto; display: inline-block; text-decoration: none;
+    background: var(--lila); color: #fff; font-weight: bold; font-size: 22px;
+    padding: 12px 34px; border-radius: 16px; box-shadow: 0 5px 0 var(--lila-dunkel);
+  }
+  .knopf:hover { background: var(--tuerkis); box-shadow: 0 5px 0 var(--tuerkis-dunkel); }
+  .knopf:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--lila-dunkel); }
+  .bald { border-style: dashed; border-color: var(--lila); background: rgba(255,255,255,.75); }
+  .bald .bild { opacity: .6; }
+  .fuss { text-align: center; color: #fff; margin-top: 40px; font-size: 15px; opacity: .9; }
+  @media (max-width: 520px) {
+    h1 { font-size: 44px; }
+    .tiere { font-size: 64px; gap: 40px; }
+    .gruss { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+  <div class="kopf">
+    <!-- Das Einhorn und das Reh schauen sich an. -->
+    <div class="tiere"><span class="einhorn">🦄</span><span class="reh spiegeln">🦌</span></div>
+    <h1>Gretas Spiele</h1>
+    <p class="gruss">Hier sind Gretas Spiele, die sie selbst gemacht hat. Viel Spaß beim Spielen!</p>
+  </div>
+
+  <div class="spiele">
+    <div class="karte">
+      <div class="bild">🤫</div>
+      <h2>Das große Streiche-Spiel</h2>
+      <p>Schleich durch den Tag einer Familie und spiel ihnen Streiche, ohne dass dich jemand sieht!</p>
+      <p class="klein">⌨️ Zum Spielen brauchst du eine Tastatur.</p>
+      <a class="knopf" href="streiche.html">Spielen ▶</a>
+    </div>
+
+    <div class="karte bald">
+      <div class="bild">✨</div>
+      <h2>Bald gibt es mehr!</h2>
+      <p>Greta erfindet schon das nächste Spiel.</p>
+    </div>
+  </div>
+
+  <p class="fuss">💜 Ausgedacht von Greta · gebaut mit Claude 💙</p>
+</body>
+</html>

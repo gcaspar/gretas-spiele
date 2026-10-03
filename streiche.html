@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Das große Streiche-Spiel</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #1b2340; font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #222;
+  }
+  #wrap { position: relative; width: 900px; }
+  canvas { display: block; border-radius: 18px; box-shadow: 0 14px 40px rgba(0,0,0,.5); background:#1b2340; }
+  .screen {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    background: rgba(20,26,48,.94); color: #fff; border-radius: 18px; padding: 24px 46px;
+  }
+  .screen.an { display: flex; }
+  h1 { font-size: 40px; margin: 0 0 6px; }
+  h2 { font-size: 30px; margin: 0 0 10px; }
+  p  { font-size: 20px; line-height: 1.45; margin: 6px 0; max-width: 720px; }
+  .klein { font-size: 16px; opacity: .8; }
+  input {
+    font-size: 21px; padding: 8px 12px; border-radius: 10px; border: 3px solid #ffd166;
+    width: 260px; text-align: center; font-family: inherit; margin: 4px;
+  }
+  .knopf {
+    background: #ffd166; color: #23305a; border: none; font-family: inherit;
+    font-size: 23px; font-weight: bold; padding: 12px 30px; border-radius: 14px; cursor: pointer;
+    margin-top: 10px;
+  }
+  .knopf:hover { background: #ffe08a; }
+  .karten { display: flex; gap: 24px; margin-top: 12px; }
+  .karte {
+    width: 275px; padding: 18px 16px; border-radius: 18px; background: #2e3a63;
+    border: 5px solid transparent; cursor: pointer; transition: transform .1s;
+  }
+  .karte.aktiv { border-color: #ffd166; transform: translateY(-8px); background: #3d4c80; }
+  .karte .em { font-size: 54px; display: block; }
+  .karte .tx { font-size: 20px; font-weight: bold; margin-top: 8px; display: block; }
+  .karte .un { font-size: 15px; opacity: .75; margin-top: 6px; display: block; }
+  .gross-emoji { font-size: 74px; margin: 2px; }
+  .karte.klein-karte { width: 185px; padding: 14px 10px; }
+  .karte.klein-karte .em { font-size: 44px; }
+  .karte.klein-karte .tx { font-size: 18px; }
+  .karte.klein-karte .un { font-size: 13px; }
+  .zeile { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 3px; }
+  .zeile span { font-size: 30px; width: 44px; }
+  #tag-karten .karte { width: 240px; }
+  .nur-oma, .nur-freunde { display: none; }
+  .nur-oma.an, .nur-freunde.an { display: block; }
+  #s-familie .zeile input { padding: 5px 12px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="900" height="560"></canvas>
+
+  <div class="screen an" id="s-start">
+    <h1>Das große Streiche-Spiel</h1>
+    <div class="zeile"><span>&#129490;</span><input id="in-kind" placeholder="Dein Name" maxlength="14" value="Mia"></div>
+    <div class="zeile"><span>&#128104;</span><input id="in-gross" placeholder="Der Erwachsene" maxlength="14" value="Herr Krause"></div>
+    <h2 style="margin-top:12px">Was für ein Tag ist heute?</h2>
+    <div class="karten" id="tag-karten"></div>
+    <p class="klein">Aussuchen mit &#8592; &#8594; &nbsp;|&nbsp; Weiter mit Leertaste</p>
+  </div>
+
+  <div class="screen" id="s-familie">
+    <h1>Seine Familie</h1>
+    <p class="klein">Die dürfen dich auch alle nicht sehen!</p>
+    <div class="zeile"><span>&#128105;</span><input id="in-frau" placeholder="Seine Frau" maxlength="14" value="Frau Krause"></div>
+    <div class="zeile"><span>&#128103;</span><input id="in-k1" placeholder="Erstes Kind" maxlength="14" value="Emma"></div>
+    <div class="zeile"><span>&#128102;</span><input id="in-k2" placeholder="Zweites Kind" maxlength="14" value="Ben"></div>
+    <div class="nur-oma">
+      <div class="zeile"><span>&#128117;</span><input id="in-oma" placeholder="Die Oma" maxlength="14" value="Oma Hilde"></div>
+    </div>
+    <div class="nur-freunde">
+      <div class="zeile"><span>&#129492;</span><input id="in-f1" placeholder="Ein Freund" maxlength="14" value="Tom"></div>
+      <div class="zeile"><span>&#128105;&#8205;&#129456;</span><input id="in-f2" placeholder="Eine Freundin" maxlength="14" value="Lisa"></div>
+    </div>
+    <button class="knopf" id="btn-familie">Los gehts!</button>
+  </div>
+
+  <div class="screen" id="s-ort">
+    <h1>Wo treffen sich die Eltern mit den Freunden?</h1>
+    <p class="klein">Erst spielst du der Oma Streiche - dann schleichst du hinterher!</p>
+    <div class="karten" id="ort-karten"></div>
+    <p class="klein">Aussuchen mit &#8592; &#8594; &nbsp;|&nbsp; Los mit Leertaste</p>
+  </div>
+
+  <div class="screen" id="s-opfer">
+    <h1>Wem spielst du die Streiche?</h1>
+    <div class="karten" id="opfer-karten"></div>
+    <p class="klein">Aussuchen mit &#8592; &#8594; &nbsp;|&nbsp; Los mit Leertaste</p>
+  </div>
+
+  <div class="screen" id="s-schwer">
+    <h1>Wie schwer soll es sein?</h1>
+    <div class="karten" id="schwer-karten"></div>
+    <p id="zeit-zeile" style="font-size:26px;margin-top:18px"></p>
+    <p class="klein">Schwierigkeit: &#8592; &#8594; &nbsp;|&nbsp; Zeit: &#8593; &#8595; &nbsp;|&nbsp; Los mit Leertaste</p>
+  </div>
+
+  <div class="screen" id="s-brief">
+    <h2 id="brief-titel"></h2>
+    <p class="gross-emoji" id="brief-emoji"></p>
+    <p id="brief-text"></p>
+    <p class="klein" id="brief-wer"></p>
+    <button class="knopf" id="btn-brief">Weiter</button>
+  </div>
+
+  <div class="screen" id="s-wahl">
+    <h2>Was machst du?</h2>
+    <div class="karten" id="wahl-karten"></div>
+    <p class="klein">Aussuchen mit &#8592; &#8594; &nbsp;|&nbsp; Nehmen mit Leertaste</p>
+  </div>
+
+  <div class="screen" id="s-folge">
+    <p class="gross-emoji" id="folge-emoji"></p>
+    <p id="folge-text"></p>
+    <button class="knopf" id="btn-folge">Weiter</button>
+  </div>
+
+  <div class="screen" id="s-erwischt">
+    <h1>Erwischt! &#128064;</h1>
+    <p id="erwischt-text"></p>
+    <p class="klein" id="erwischt-leben"></p>
+    <button class="knopf" id="btn-erwischt">Nochmal versuchen</button>
+  </div>
+
+  <div class="screen" id="s-ende">
+    <h1 id="ende-titel"></h1>
+    <p class="gross-emoji" id="ende-emoji"></p>
+    <p id="ende-text"></p>
+    <button class="knopf" id="btn-ende">Nochmal spielen</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const W = 900, H = 560;
+const RAND = 34;
+
+/* ========================================================= Schwierigkeit
+   leicht ist fuer die ganz Kleinen: viel Zeit, viele Leben, alle gucken
+   kurz und langsam und es passen hoechstens zwei Leute gleichzeitig auf. */
+const SCHWIERIGKEIT = {
+  leicht: { name:"Leicht", emoji:"\u{1F423}", alter:"3 bis 6 Jahre",
+            unter:"Viel Zeit, 5 Leben, höchstens 2 passen auf.",
+            leben:5, zeit:60, sicht:0.60, weite:0.82, tempo:0.65, dreh:0.60, maxWachen:2, spielerTempo:1.15, gnade:3.2 },
+  mittel: { name:"Mittel", emoji:"\u{1F642}", alter:"6 bis 10 Jahre",
+            unter:"Ganz normal. 3 Leben.",
+            leben:3, zeit:40, sicht:1.00, weite:1.00, tempo:1.00, dreh:1.00, maxWachen:4, spielerTempo:1.00, gnade:1.8 },
+  schwer: { name:"Schwer", emoji:"\u{1F525}", alter:"ab 10 Jahre",
+            unter:"Alle gucken weiter und sind schneller. Nur 2 Leben.",
+            leben:2, zeit:30, sicht:1.15, weite:1.10, tempo:1.20, dreh:1.20, maxWachen:4, spielerTempo:1.00, gnade:1.2 }
+};
+const SCHWER_IDS = ["leicht", "mittel", "schwer"];
+const ZEIT_MIN = 20, ZEIT_MAX = 60, ZEIT_SCHRITT = 5;
+let schwerId = "mittel", schwerIndex = 1;
+let zeitProSzene = 40;
+function S() { return SCHWIERIGKEIT[schwerId]; }
+
+/* ============================================================ Wer aufpasst
+   Der Erwachsene guckt am weitesten. Die Kinder gucken am wenigsten weit. */
+const WACHTYP = {
+  gross: { farbe:"#e06c5a", rand:"#7d2f22", emoji:"\u{1F468}", r:27, schrift:34, reich:245, weite:0.44, tempo:1.35, dreh:2.1 },
+  frau:  { farbe:"#b47ad0", rand:"#5e3577", emoji:"\u{1F469}", r:26, schrift:32, reich:200, weite:0.40, tempo:1.25, dreh:1.9 },
+  k1:    { farbe:"#7bc47f", rand:"#2f6b3a", emoji:"\u{1F467}", r:21, schrift:26, reich:150, weite:0.38, tempo:1.55, dreh:1.7 },
+  k2:    { farbe:"#f0a95c", rand:"#8a5410", emoji:"\u{1F466}", r:21, schrift:26, reich:150, weite:0.38, tempo:1.55, dreh:1.7 },
+  // nur in der Schule
+  lehrer:{ farbe:"#d0a75a", rand:"#7a5c15", emoji:"\u{1F9D1}", r:27, schrift:32, reich:230, weite:0.42, tempo:1.30, dreh:2.0 },
+  freund:{ farbe:"#8fd0c4", rand:"#2f6b62", emoji:"\u{1F9D2}", r:21, schrift:26, reich:150, weite:0.38, tempo:1.55, dreh:1.7 },
+  // nur am Oma-Tag: die Oma ist etwas langsamer, die Freunde der Eltern gucken wie Erwachsene
+  oma:   { farbe:"#e8c6a0", rand:"#8a6440", emoji:"\u{1F475}", r:26, schrift:32, reich:190, weite:0.40, tempo:1.05, dreh:1.6 },
+  f1:    { farbe:"#7fb0e0", rand:"#2f5a85", emoji:"\u{1F9D4}", r:26, schrift:32, reich:210, weite:0.41, tempo:1.25, dreh:1.9 },
+  f2:    { farbe:"#f0a0c0", rand:"#8a3a5c", emoji:"\u{1F469}‍\u{1F9B0}", r:26, schrift:32, reich:200, weite:0.40, tempo:1.25, dreh:1.9 }
+};
+
+/* ===================================================================== Raeume */
+const RAEUME = {
+
+  hausschuhe: {
+    raum: "Schlafzimmer", emoji: "\u{1F45E}",
+    aufgabe: "Schleich zu den Hausschuhen!",
+    boden: "#f0dfc2", wand: "#8d6b4a",
+    moebel: [
+      { x: 60,  y: 80,  w: 210, h: 150, farbe: "#c8dcf0", emoji: "\u{1F6CF}", label: "Bett" },
+      { x: 690, y: 80,  w: 150, h: 170, farbe: "#b98d5f", emoji: "\u{1F6AA}", label: "Schrank" },
+      { x: 390, y: 90,  w: 140, h: 100, farbe: "#9fd3c7", emoji: "\u{1FA9F}", label: "Vorhang" },
+      { x: 690, y: 400, w: 150, h: 120, farbe: "#d8c3a5", emoji: "\u{1F4E6}", label: "Kiste" }
+    ],
+    ziel: { x: 300, y: 460, emoji: "\u{1F45E}", label: "Hausschuhe" },
+    routen: {
+      gross: [ {x:180,y:320},{x:620,y:320},{x:620,y:200},{x:220,y:200} ],
+      frau:  [ {x:380,y:480},{x:650,y:480} ],
+      k1:    [ {x:600,y:140},{x:600,y:300} ],
+      k2:    [ {x:300,y:250},{x:300,y:400} ]
+    },
+    spielerStart: { x: 820, y: 320 },
+    optionen: [
+      { emoji: "\u{1F373}", text: "Spiegelei rein", folgeEmoji: "\u{1F373}",
+        folge: "SQUISH! IIIIH! Warum ist mein Hausschuh warm und glibberig?! {G} hüpft auf einem Bein durchs ganze Zimmer." },
+      { emoji: "\u{1F954}", text: "Kartoffelbrei rein", folgeEmoji: "\u{1F92E}",
+        folge: "MATSCH! {G} zieht den Fuß raus und der Brei klebt zwischen allen Zehen. BAAAH!" }
+    ],
+    frau: {
+      aufgabe: "Schleich zur Haarbürste von {F}!",
+      ziel: { x: 300, y: 460, emoji: "\u{1FAAE}", label: "ihre Haarbürste" },
+      optionen: [
+        { emoji: "\u{1F36F}", text: "Honig auf die Bürste", folgeEmoji: "\u{1F41D}",
+          folge: "{F} bürstet sich die Haare. Die Bürste bleibt kleben. Sie zieht. Jetzt stehen ihre Haare senkrecht nach oben wie eine Palme." },
+        { emoji: "✨", text: "Glitzer in den Föhn", folgeEmoji: "✨",
+          folge: "{F} macht den Föhn an - PFFF! Eine Glitzerwolke schießt ihr ins Gesicht. Sie glitzert den ganzen Tag. Sogar beim Zähneputzen." }
+      ]
+    }
+  },
+
+  zaehne: {
+    raum: "Badezimmer", emoji: "\u{1FAA5}",
+    aufgabe: "Schleich zur Zahnbürste!",
+    boden: "#d9eef5", wand: "#5f8ba0",
+    moebel: [
+      { x: 60,  y: 100, w: 170, h: 190, farbe: "#a7d8e8", emoji: "\u{1F6BF}", label: "Dusche" },
+      { x: 700, y: 340, w: 140, h: 130, farbe: "#e0c9a6", emoji: "\u{1F9FA}", label: "Wäschekorb" },
+      { x: 370, y: 430, w: 180, h: 95,  farbe: "#cfd8dc", emoji: "\u{1F6C1}", label: "Badewanne" },
+      { x: 715, y: 100, w: 125, h: 120, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" }
+    ],
+    ziel: { x: 300, y: 320, emoji: "\u{1FAA5}", label: "Zahnbürste" },
+    routen: {
+      gross: [ {x:600,y:230},{x:280,y:230},{x:280,y:400},{x:600,y:400} ],
+      frau:  [ {x:300,y:150},{x:650,y:150} ],
+      k1:    [ {x:640,y:300},{x:640,y:420} ],
+      k2:    [ {x:120,y:480},{x:340,y:480} ]
+    },
+    spielerStart: { x: 830, y: 500 },
+    optionen: [
+      { emoji: "\u{1F345}", text: "Ketchup drauf", folgeEmoji: "\u{1F631}",
+        folge: "MHH... BAEAEAEH! {G} spuckt knallrot in den Spiegel, denkt er blutet und schreit das ganze Haus zusammen." },
+      { emoji: "\u{1F32D}", text: "Senf drauf", folgeEmoji: "\u{1F975}",
+        folge: "SCHAAARF! {G} rennt zum Wasserhahn und trinkt direkt aus der Leitung. 20 Sekunden lang." }
+    ],
+    frau: {
+      aufgabe: "Schleich zur Gesichtscreme von {F}!",
+      ziel: { x: 300, y: 320, emoji: "\u{1F9F4}", label: "ihre Gesichtscreme" },
+      optionen: [
+        { emoji: "\u{1F338}", text: "Handcreme statt Zahnpasta", folgeEmoji: "\u{1F615}",
+          folge: "{F} putzt sich die Zähne mit Handcreme. Es schäumt nicht. Es schmeckt nach Blumen. Sie guckt sich sehr lange im Spiegel an." },
+        { emoji: "\u{1F352}", text: "Marmelade in die Creme", folgeEmoji: "\u{1F633}",
+          folge: "{F} cremt sich das Gesicht ein und ist plötzlich klebrig und knallrot. Sie riecht nach Kirschkuchen. Eine Wespe kommt zu Besuch." }
+      ]
+    },
+    kind: {
+      aufgabe: "Schleich zur Zahnbürste von {O}!",
+      ziel: { x: 300, y: 320, emoji: "\u{1FAA5}", label: "seine Zahnbürste" },
+      optionen: [
+        { emoji: "\u{1F9CA}", text: "Die Zahnpasta einfrieren", folgeEmoji: "\u{1F976}",
+          folge: "{O} drückt und drückt. Es kommt nichts raus. Die Tube ist steinhart. Am Ende putzt {O} die Zähne mit Wasser und viel Fantasie." },
+        { emoji: "✨", text: "Glitzer in die Zahnpasta", folgeEmoji: "✨",
+          folge: "{O} putzt und spuckt aus. Der Schaum funkelt. Der ganze Mund funkelt. {A} will sofort auch welche haben." }
+      ]
+    }
+  },
+
+  fruehstueck: {
+    raum: "Küche", emoji: "☕",
+    aufgabe: "Die ganze Familie frühstückt. Schleich zum Kaffee!",
+    boden: "#f5ead3", wand: "#8a7a52",
+    moebel: [
+      { x: 60,  y: 100, w: 200, h: 130, farbe: "#cfd8dc", emoji: "\u{1F9CA}", label: "Kühlschrank" },
+      { x: 700, y: 100, w: 140, h: 140, farbe: "#b0a08a", emoji: "\u{1F5C4}", label: "Schrank" },
+      { x: 60,  y: 380, w: 190, h: 140, farbe: "#a9c6a0", emoji: "\u{1F5D1}", label: "Mülleimer" },
+      { x: 690, y: 380, w: 150, h: 140, farbe: "#d8c3a5", emoji: "\u{1FA91}", label: "Stuhlecke" }
+    ],
+    ziel: { x: 450, y: 310, emoji: "☕", label: "Kaffee und Müsli" },
+    routen: {
+      gross: [ {x:330,y:250},{x:620,y:250},{x:620,y:440},{x:330,y:440} ],
+      frau:  [ {x:340,y:160},{x:640,y:160} ],
+      k1:    [ {x:520,y:490},{x:310,y:490} ],
+      k2:    [ {x:650,y:270},{x:650,y:360} ]
+    },
+    spielerStart: { x: 130, y: 300 },
+    optionen: [
+      { emoji: "\u{1F9C2}", text: "Salz in den Kaffee", folgeEmoji: "\u{1F92E}",
+        folge: "PFFFFFT! {G} spuckt den Kaffee quer über den ganzen Tisch. WER SALZT DENN KAFFEE?! {F} guckt ihn ganz ruhig an und sagt: Nicht so laut." },
+      { emoji: "\u{1FAB1}", text: "Gummiwurm ins Müsli", folgeEmoji: "\u{1F633}",
+        folge: "{G} löffelt sein Müsli. Plötzlich guckt ihn ein pinker Gummiwurm an. Er springt auf den Stuhl. {K1} findet das großartig." }
+    ],
+    frau: {
+      aufgabe: "Die ganze Familie frühstückt. Schleich zur Teetasse von {F}!",
+      ziel: { x: 450, y: 310, emoji: "\u{1F375}", label: "ihre Teetasse" },
+      optionen: [
+        { emoji: "\u{1F34B}", text: "Eine ganze Zitrone reinpressen", folgeEmoji: "\u{1F62C}",
+          folge: "{F} nimmt einen Schluck Tee und zieht ein Gesicht wie eine Zitrone. Weil eine ganze drin ist. {K2} fällt fast vom Stuhl vor Lachen." },
+        { emoji: "\u{1FAE7}", text: "Sprudeltablette in die Tasse", folgeEmoji: "\u{1F30B}",
+          folge: "Die Tasse fangt an zu blubbern. Dann zu schäumen. Der Schaum läuft über den ganzen Tisch. {F} weicht ganz langsam rückwärts zurück." }
+      ]
+    },
+    kind: {
+      aufgabe: "Die ganze Familie frühstückt. Schleich zum Kakao von {O}!",
+      ziel: { x: 450, y: 310, emoji: "\u{1F964}", label: "sein Kakao" },
+      optionen: [
+        { emoji: "\u{1F9C2}", text: "Salz in den Kakao", folgeEmoji: "\u{1F41F}",
+          folge: "{O} trinkt einen großen Schluck und macht ein Gesicht wie ein Fisch. {F} fragt: Alles gut? {O} nickt ganz tapfer." },
+        { emoji: "\u{1F40D}", text: "Gummischlange ins Müsli", folgeEmoji: "\u{1F631}",
+          folge: "{O} löffelt und zieht eine lange Gummischlange aus der Schüssel. {A} kreischt. {G} findet seine Zeitung plötzlich sehr interessant." }
+      ]
+    }
+  },
+
+  aufraeumen: {
+    raum: "Wohnzimmer", emoji: "\u{1F9F9}",
+    aufgabe: "{G} räumt auf. Schleich zum kleinen Tisch!",
+    boden: "#efe0d0", wand: "#7d5a44",
+    moebel: [
+      { x: 60,  y: 340, w: 230, h: 140, farbe: "#c98f8f", emoji: "\u{1F6CB}", label: "Sofa" },
+      { x: 640, y: 90,  w: 200, h: 120, farbe: "#8a8f98", emoji: "\u{1F4FA}", label: "TV-Regal" },
+      { x: 90,  y: 100, w: 140, h: 130, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Palme" },
+      { x: 680, y: 390, w: 160, h: 130, farbe: "#d8c3a5", emoji: "\u{1F4DA}", label: "Bücher" }
+    ],
+    ziel: { x: 460, y: 270, emoji: "\u{1FA91}", label: "kleiner Tisch" },
+    routen: {
+      gross: [ {x:250,y:300},{x:640,y:300},{x:640,y:460},{x:350,y:460} ],
+      frau:  [ {x:300,y:160},{x:590,y:160} ],
+      k1:    [ {x:350,y:500},{x:620,y:500} ],
+      k2:    [ {x:280,y:380},{x:280,y:250} ]
+    },
+    spielerStart: { x: 110, y: 510 },
+    optionen: [
+      { emoji: "\u{1F4A5}", text: "Von hinten schubsen", folgeEmoji: "\u{1F4A5}",
+        folge: "SCHUBS! {G} kippt gegen den kleinen Tisch. Der Tisch gegen die Lampe. Die Lampe gegen die Vase. KLIRR - BUMM - KLONK! Alles liegt am Boden." },
+      { emoji: "\u{1F9E6}", text: "Alles unordentlich machen", folgeEmoji: "\u{1F644}",
+        folge: "Du wirfst alles wieder runter. {G} dreht sich um: Aber... ich hab das doch gerade...? {F} sagt: Du wirst alt. Er fängt nochmal von vorne an." }
+    ],
+    frau: {
+      aufgabe: "{F} räumt auf. Schleich zu ihrer Lieblingspflanze!",
+      ziel: { x: 460, y: 270, emoji: "\u{1FAB4}", label: "ihre Lieblingspflanze" },
+      optionen: [
+        { emoji: "\u{1F338}", text: "Plastikblumen reinstecken", folgeEmoji: "\u{1F50D}",
+          folge: "{F} gießt ihre Pflanze und stutzt: Seit wann blühst DU denn pink? Sie holt eine Lupe. Dann ein Buch. Dann {G}." },
+        { emoji: "\u{1F4DA}", text: "Alle Bücher rückwärts einräumen", folgeEmoji: "\u{1F644}",
+          folge: "{F} guckt aufs Regal. Alle Buchrücken zeigen nach hinten. Sie räumt zwei Stunden lang um und redet dabei mit sich selbst." }
+      ]
+    },
+    kind: {
+      aufgabe: "{O} soll aufräumen. Schleich zu den Spielsachen!",
+      ziel: { x: 460, y: 270, emoji: "\u{1F9F8}", label: "seine Spielsachen" },
+      optionen: [
+        { emoji: "\u{1F9F1}", text: "Alle Legosteine vertauschen", folgeEmoji: "\u{1F680}",
+          folge: "{O} sucht das eine blaue Teil. Es ist nirgends. Überall liegt nur etwas anderes. Am Ende baut {O} ein sehr komisches Raumschiff." },
+        { emoji: "\u{1F9F8}", text: "Alle Kuscheltiere verstecken", folgeEmoji: "\u{1F440}",
+          folge: "{O} kommt ins Zimmer - kein einziges Kuscheltier da. Später findet {O} alle im Wäschekorb. Sie sitzen dort ordentlich in einer Reihe." }
+      ]
+    }
+  },
+
+  jacke: {
+    raum: "Flur", emoji: "\u{1F9E5}",
+    aufgabe: "{G} will raus. Schleich zur Jacke!",
+    boden: "#e8ddd0", wand: "#6b5344",
+    moebel: [
+      { x: 60,  y: 100, w: 150, h: 170, farbe: "#b98d5f", emoji: "\u{1F6AA}", label: "Garderobe" },
+      { x: 700, y: 330, w: 140, h: 190, farbe: "#a9b7c6", emoji: "\u{1F9F3}", label: "Koffer" },
+      { x: 380, y: 100, w: 150, h: 100, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" },
+      { x: 60,  y: 400, w: 160, h: 120, farbe: "#d8c3a5", emoji: "\u{1F45F}", label: "Schuhregal" }
+    ],
+    ziel: { x: 640, y: 190, emoji: "\u{1F9E5}", label: "Jacke" },
+    routen: {
+      gross: [ {x:280,y:330},{x:620,y:330},{x:620,y:470},{x:280,y:470} ],
+      frau:  [ {x:300,y:250},{x:580,y:250} ],
+      k1:    [ {x:250,y:150},{x:360,y:150} ],
+      k2:    [ {x:600,y:420},{x:600,y:250} ]
+    },
+    spielerStart: { x: 140, y: 310 },
+    optionen: [
+      { emoji: "\u{1F9F5}", text: "Ärmel zunähen", folgeEmoji: "\u{1F94B}",
+        folge: "{G} kämpft mit der Jacke. Der Arm kommt einfach nicht raus. Er dreht sich im Kreis wie ein wilder Ninja." },
+      { emoji: "\u{1F38A}", text: "Konfetti in die Kapuze", folgeEmoji: "\u{1F389}",
+        folge: "{G} zieht die Kapuze auf - KONFETTI-REGEN! Er steht im Flur und sieht aus wie eine wandelnde Geburtstagsparty." }
+    ],
+    frau: {
+      aufgabe: "{F} will raus. Schleich zu ihrer Handtasche!",
+      ziel: { x: 640, y: 190, emoji: "\u{1F45C}", label: "ihre Handtasche" },
+      optionen: [
+        { emoji: "\u{1F3D6}", text: "Handtasche mit Sand füllen", folgeEmoji: "\u{1F4AA}",
+          folge: "{F} hebt ihre Handtasche hoch und wäre fast umgekippt. Beim Reingucken rieselt Sand raus. Sehr viel Sand. Der Flur ist jetzt ein Strand." },
+        { emoji: "\u{1F511}", text: "Alle Schlüssel vertauschen", folgeEmoji: "\u{1F624}",
+          folge: "{F} steht vor der Haustür und probiert sieben Schlüssel. Keiner passt. Der achte ist der Fahrradschlüssel. Sie klingelt bei sich selbst." }
+      ]
+    },
+    kind: {
+      aufgabe: "{O} will raus. Schleich zur Jacke!",
+      ziel: { x: 640, y: 190, emoji: "\u{1F9E5}", label: "seine Jacke" },
+      optionen: [
+        { emoji: "\u{1F9F5}", text: "Die Kapuze zunähen", folgeEmoji: "\u{1F94B}",
+          folge: "{O} zieht die Jacke an und will die Kapuze aufsetzen. Sie geht nicht auf. {O} kämpft im Flur mit der eigenen Jacke und verliert." },
+        { emoji: "\u{1F330}", text: "Alle Taschen voller Kastanien", folgeEmoji: "\u{1F3B5}",
+          folge: "{O} steckt die Hände in die Taschen. Kastanien. Überall Kastanien. Beim Laufen klackert {O} wie eine wandelnde Rassel." }
+      ]
+    }
+  },
+
+  schuleBringen: {
+    raum: "Vor der Schule", emoji: "\u{1F392}",
+    aufgabe: "{G} bringt {K1} und {K2} zur Schule. Schleich zum Ranzen!",
+    boden: "#cfe3c0", wand: "#6f8b5a",
+    moebel: [
+      { x: 60,  y: 100, w: 160, h: 150, farbe: "#8fbf7a", emoji: "\u{1F333}", label: "Baum" },
+      { x: 690, y: 100, w: 150, h: 140, farbe: "#a9b7c6", emoji: "\u{1F6B2}", label: "Fahrräder" },
+      { x: 60,  y: 390, w: 170, h: 130, farbe: "#9aa88c", emoji: "\u{1F5D1}", label: "Mülltonne" },
+      { x: 680, y: 380, w: 160, h: 140, farbe: "#c7b48f", emoji: "\u{1F68C}", label: "Bushaltestelle" }
+    ],
+    ziel: { x: 450, y: 290, emoji: "\u{1F392}", label: "der Schulranzen" },
+    routen: {
+      gross: [ {x:300,y:230},{x:610,y:230},{x:610,y:420},{x:300,y:420} ],
+      frau:  [ {x:300,y:160},{x:640,y:160} ],
+      k1:    [ {x:340,y:490},{x:630,y:490} ],
+      k2:    [ {x:280,y:300},{x:280,y:420} ]
+    },
+    spielerStart: { x: 130, y: 300 },
+    optionen: [
+      { emoji: "\u{1FAA8}", text: "Steine in den Schulranzen", folgeEmoji: "\u{1F975}",
+        folge: "{G} hebt den Ranzen von {K1} hoch und wäre fast umgefallen. Was habt ihr denn da drin - die ganze Schule?!" },
+      { emoji: "\u{1F342}", text: "Turnbeutel mit Laub füllen", folgeEmoji: "\u{1F602}",
+        folge: "In der Turnhalle packt {K1} den Beutel aus. Ein riesiger Haufen Laub fällt raus. Die ganze Klasse lacht sich kaputt." }
+    ],
+    frau: {
+      aufgabe: "{F} bringt die Kinder zur Schule. Schleich zu ihrem Kaffeebecher!",
+      ziel: { x: 450, y: 290, emoji: "\u{1F964}", label: "ihr Kaffeebecher" },
+      optionen: [
+        { emoji: "\u{1F5DC}", text: "Den Deckel lockern", folgeEmoji: "\u{1F62D}",
+          folge: "{F} nimmt einen Schluck - der Deckel fällt ab und der ganze Kaffee landet auf ihrem hellen Mantel. Sie steht ganz still da." },
+        { emoji: "\u{1F9C2}", text: "Salz in den Becher", folgeEmoji: "\u{1F610}",
+          folge: "{F} trinkt. Sie bewegt sich nicht. Dann sagt sie ganz ruhig zu {K1} und {K2}: Wer von euch war das? Beide zeigen auf den anderen." }
+      ]
+    },
+    kind: {
+      aufgabe: "{O} muss zur Schule. Schleich zu den Schuhen!",
+      ziel: { x: 450, y: 290, emoji: "\u{1F45F}", label: "seine Schuhe" },
+      optionen: [
+        { emoji: "\u{1FAA2}", text: "Beide Schuhe zusammenbinden", folgeEmoji: "\u{1F602}",
+          folge: "{O} macht einen Schritt und fällt fast hin. Die Schnürsenkel sind zusammengeknotet. {A} lacht so laut, dass die halbe Schule guckt." },
+        { emoji: "\u{1F438}", text: "Einen Frosch in den Ranzen", folgeEmoji: "\u{1F438}",
+          folge: "In der ersten Stunde macht {O} den Ranzen auf. QUAAAK! Ein Frosch springt raus und landet direkt auf dem Lehrerpult." }
+      ]
+    }
+  },
+
+  buero: {
+    raum: "Büro", emoji: "\u{1F4BC}",
+    aufgabe: "{G} arbeitet. Schleich zu seinem Schreibtisch!",
+    boden: "#e4e7ea", wand: "#5b6470",
+    moebel: [
+      { x: 60,  y: 100, w: 170, h: 150, farbe: "#9aa5b1", emoji: "\u{1F5C4}", label: "Aktenschrank" },
+      { x: 690, y: 100, w: 150, h: 140, farbe: "#b6bec7", emoji: "\u{1F5A8}", label: "Kopierer" },
+      { x: 60,  y: 390, w: 170, h: 130, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" },
+      { x: 680, y: 380, w: 160, h: 140, farbe: "#c9b89a", emoji: "☕", label: "Kaffee-Ecke" }
+    ],
+    ziel: { x: 450, y: 280, emoji: "\u{1F4BB}", label: "sein Schreibtisch" },
+    maxWachen: 2,                       // die Kinder sind ja in der Schule
+    routen: {
+      gross: [ {x:320,y:210},{x:600,y:210},{x:600,y:420},{x:320,y:420} ],
+      frau:  [ {x:320,y:140},{x:640,y:140} ],
+      k1:    [ {x:330,y:490},{x:620,y:490} ],
+      k2:    [ {x:280,y:300},{x:280,y:410} ]
+    },
+    spielerStart: { x: 130, y: 290 },
+    optionen: [
+      { emoji: "\u{1F5B1}", text: "Maus unten zukleben", folgeEmoji: "\u{1F620}",
+        folge: "{G} schiebt die Maus. Nichts. Er schiebt schneller. Immer noch nichts. Er hebt sie hoch, guckt drunter - und findet einen kleinen Zettel mit einem gemalten Smiley." },
+      { emoji: "⌨", text: "Alle Tasten vertauschen", folgeEmoji: "\u{1F92F}",
+        folge: "{G} tippt eine wichtige E-Mail an seinen Chef. Am Ende steht da: SEHR GEEHRTE FRAU XQPMZ. Er tippt sie dreimal neu." }
+    ],
+    frau: {
+      aufgabe: "{F} arbeitet. Schleich zu ihrem Schreibtisch!",
+      ziel: { x: 450, y: 280, emoji: "\u{1F96A}", label: "ihr Pausenbrot" },
+      optionen: [
+        { emoji: "\u{1F9FC}", text: "Seife statt Gurke ins Brot", folgeEmoji: "\u{1FAE7}",
+          folge: "{F} beißt in ihr Brot. Sie pustet eine kleine Seifenblase. Dann noch eine. Drei Kollegen klatschen begeistert." },
+        { emoji: "✏", text: "Alle Stifte verstecken", folgeEmoji: "\u{1F484}",
+          folge: "{F} sucht einen Stift. Findet keinen. Nirgends im ganzen Büro. Sie schreibt ihre Notizen am Ende mit Lippenstift." }
+      ]
+    }
+  },
+
+  schuleHolen: {
+    raum: "Parkplatz", emoji: "\u{1F697}",
+    aufgabe: "{G} holt {K1} und {K2} ab. Schleich zum Auto!",
+    boden: "#d5d2cc", wand: "#6d6a63",
+    moebel: [
+      { x: 60,  y: 100, w: 160, h: 150, farbe: "#8fbf7a", emoji: "\u{1F333}", label: "Baum" },
+      { x: 690, y: 100, w: 150, h: 150, farbe: "#a9b7c6", emoji: "\u{1F69B}", label: "Lieferwagen" },
+      { x: 60,  y: 390, w: 170, h: 130, farbe: "#9aa88c", emoji: "\u{1F6D2}", label: "Wagen-Ecke" },
+      { x: 680, y: 380, w: 160, h: 140, farbe: "#c7b48f", emoji: "\u{1F4E6}", label: "Container" }
+    ],
+    ziel: { x: 450, y: 280, emoji: "\u{1F697}", label: "sein Auto" },
+    routen: {
+      gross: [ {x:300,y:240},{x:620,y:240},{x:620,y:420},{x:300,y:420} ],
+      frau:  [ {x:300,y:150},{x:640,y:150} ],
+      k1:    [ {x:340,y:490},{x:630,y:490} ],
+      k2:    [ {x:270,y:300},{x:270,y:420} ]
+    },
+    spielerStart: { x: 140, y: 300 },
+    optionen: [
+      { emoji: "\u{1F4EF}", text: "Hupe festkleben", folgeEmoji: "\u{1F4E2}",
+        folge: "{G} startet das Auto. TUUUUUUUUUT! Die Hupe hört nicht mehr auf. {K1} und {K2} rutschen ganz tief in ihre Sitze." },
+      { emoji: "\u{1FA9E}", text: "Alle Spiegel verstellen", folgeEmoji: "\u{1F644}",
+        folge: "{G} guckt in den Spiegel und sieht nur den Himmel. Er stellt ihn ein. Er guckt nochmal - jetzt sieht er seine eigene Nase." }
+    ],
+    frau: {
+      aufgabe: "{F} holt die Kinder ab. Schleich zu ihrem Auto!",
+      ziel: { x: 450, y: 280, emoji: "\u{1F697}", label: "ihr Auto" },
+      optionen: [
+        { emoji: "\u{1F50A}", text: "Radio auf volle Lautstärke", folgeEmoji: "\u{1F3B8}",
+          folge: "{F} startet das Auto. Das Radio brüllt los. Sie erschrickt so sehr, dass sie auf die Hupe haut. Der ganze Parkplatz guckt." },
+        { emoji: "\u{1FA91}", text: "Alle Sitze nach vorne schieben", folgeEmoji: "\u{1F975}",
+          folge: "{F} setzt sich rein und klemmt fest zwischen Lenkrad und Sitz. Sie sieht aus wie ein zusammengefalteter Liegestuhl." }
+      ]
+    },
+    kind: {
+      aufgabe: "{O} wird abgeholt. Schleich zum Autositz!",
+      ziel: { x: 450, y: 280, emoji: "\u{1FA91}", label: "sein Autositz" },
+      optionen: [
+        { emoji: "\u{1FAB6}", text: "Kitzelfeder unter den Gurt", folgeEmoji: "\u{1F923}",
+          folge: "{O} schnallt sich an, fangt sofort an zu zappeln und zu kichern und kann gar nicht mehr aufhören. {G} guckt dauernd in den Rückspiegel." },
+        { emoji: "\u{1F388}", text: "Das Auto voller Luftballons", folgeEmoji: "\u{1F388}",
+          folge: "{G} macht die Autotür auf und 30 Luftballons quellen raus. Irgendwo dahinter ruft {O}: Ich bin hier! Ich glaube!" }
+      ]
+    }
+  },
+
+  supermarkt: {
+    raum: "Supermarkt", emoji: "\u{1F6D2}",
+    aufgabe: "{G} kauft ein. Schleich zum Einkaufswagen!",
+    boden: "#eef1f4", wand: "#4f7ba6",
+    moebel: [
+      { x: 60,  y: 105, w: 260, h: 95, farbe: "#c4a882", emoji: "\u{1F96B}", label: "Konserven" },
+      { x: 580, y: 105, w: 260, h: 95, farbe: "#d9b98a", emoji: "\u{1F35E}", label: "Brot-Regal" },
+      { x: 60,  y: 400, w: 260, h: 95, farbe: "#9fc7d8", emoji: "\u{1F9C3}", label: "Getränke" },
+      { x: 580, y: 400, w: 260, h: 95, farbe: "#bcd6c4", emoji: "\u{1F9C0}", label: "Kühlregal" }
+    ],
+    ziel: { x: 450, y: 300, emoji: "\u{1F6D2}", label: "sein Einkaufswagen" },
+    routen: {
+      gross: [ {x:370,y:250},{x:560,y:250},{x:560,y:350},{x:370,y:350} ],
+      frau:  [ {x:720,y:240},{x:720,y:370} ],
+      k1:    [ {x:400,y:150},{x:540,y:150} ],
+      k2:    [ {x:400,y:450},{x:540,y:450} ]
+    },
+    spielerStart: { x: 130, y: 300 },
+    optionen: [
+      { emoji: "\u{1F96C}", text: "14 Kohlköpfe reinlegen", folgeEmoji: "\u{1F62D}",
+        folge: "An der Kasse: piep, piep, piep... vierzehnmal Kohl. Ich wollte doch nur Milch! Die Schlange hinter {G} wird sehr, sehr lang." },
+      { emoji: "\u{1F6DE}", text: "Ein Rad blockieren", folgeEmoji: "\u{1F503}",
+        folge: "{G} schiebt los. Der Wagen fährt nur im Kreis. Er kämpft drei Runden lang und schiebt ihn am Ende rückwärts durch den Laden." }
+    ],
+    frau: {
+      aufgabe: "{F} kauft ein. Schleich zu ihrem Einkaufszettel!",
+      ziel: { x: 450, y: 300, emoji: "\u{1F4DD}", label: "ihr Einkaufszettel" },
+      optionen: [
+        { emoji: "\u{1F58A}", text: "Den Zettel umschreiben", folgeEmoji: "\u{1F914}",
+          folge: "{F} liest ihren Zettel: Milch, Brot, 40 Bananen, ein Elefant. Sie liest ihn dreimal. Dann guckt sie sich im Laden nach dem Elefanten um." },
+        { emoji: "\u{1F952}", text: "22 Gurken in den Wagen", folgeEmoji: "\u{1F62C}",
+          folge: "An der Kasse: 22 Gurken. {F} sagt: Die gehören nicht mir. Der Kassierer nickt langsam und glaubt ihr kein Wort." }
+      ]
+    },
+    kind: {
+      aufgabe: "Einkaufen! Schleich zu den Süßigkeiten von {O}!",
+      ziel: { x: 450, y: 300, emoji: "\u{1F36C}", label: "seine Süßigkeiten" },
+      optionen: [
+        { emoji: "\u{1F96C}", text: "Rosenkohl ins Schokopapier", folgeEmoji: "\u{1F922}",
+          folge: "{O} packt die Tüte aus. Rosenkohl. In einem Schokoladenpapier. {O} guckt die Tüte an, als hätte sie etwas ganz Böses getan." },
+        { emoji: "\u{1F3F7}", text: "Alle Preisschilder vertauschen", folgeEmoji: "\u{1F62D}",
+          folge: "{O} rennt zu {G}: Die Gummibärchen kosten nur 1 Cent! An der Kasse kosten sie dann doch wieder 2 Euro. {O} ist am Boden zerstört." }
+      ]
+    }
+  },
+
+  kochen: {
+    raum: "Küche", emoji: "\u{1F373}",
+    aufgabe: "{G} kocht. Schleich zu den Flaschen!",
+    boden: "#f5ead3", wand: "#8a7a52",
+    moebel: [
+      { x: 60,  y: 100, w: 200, h: 130, farbe: "#cfd8dc", emoji: "\u{1F9CA}", label: "Kühlschrank" },
+      { x: 700, y: 100, w: 140, h: 140, farbe: "#b0a08a", emoji: "\u{1F5C4}", label: "Schrank" },
+      { x: 60,  y: 380, w: 190, h: 140, farbe: "#a9c6a0", emoji: "\u{1F5D1}", label: "Mülleimer" },
+      { x: 690, y: 380, w: 150, h: 140, farbe: "#d8c3a5", emoji: "\u{1FA91}", label: "Stuhlecke" }
+    ],
+    ziel: { x: 330, y: 290, emoji: "\u{1F345}", label: "Ketchup & Senf" },
+    routen: {
+      gross: [ {x:560,y:290},{x:560,y:450},{x:660,y:450},{x:650,y:290} ],
+      frau:  [ {x:330,y:160},{x:620,y:160} ],
+      k1:    [ {x:340,y:490},{x:600,y:490} ],
+      k2:    [ {x:450,y:350},{x:450,y:250} ]
+    },
+    spielerStart: { x: 830, y: 310 },
+    optionen: [
+      { emoji: "\u{1F504}", text: "Roten Senf in die Ketchup-Flasche", folgeEmoji: "\u{1F92B}",
+        merke: "senf",
+        folge: "Heimlich umgefüllt! Der Senf ist jetzt knallrot und steht in der Ketchup-Flasche. {G} merkt NICHTS. Dieser Streich wirkt erst später..." },
+      { emoji: "\u{1F336}", text: "Ganz viel Chili in den Topf", folgeEmoji: "\u{1F525}",
+        folge: "{G} probiert seine Soße. Sein Kopf wird rot, dann lila. Er fächelt sich mit einem Topfdeckel Luft zu." }
+    ],
+    frau: {
+      aufgabe: "{F} backt einen Kuchen. Schleich zum Teig!",
+      ziel: { x: 330, y: 290, emoji: "\u{1F382}", label: "ihr Kuchenteig" },
+      optionen: [
+        { emoji: "\u{1F9C2}", text: "Salz statt Zucker in den Teig", folgeEmoji: "\u{1F92B}",
+          merke: "salzkuchen",
+          folge: "Heimlich vertauscht! Der Kuchen kommt in den Ofen und riecht herrlich. {F} merkt NICHTS. Dieser Streich wirkt erst später..." },
+        { emoji: "\u{1F30B}", text: "Ein Berg Backpulver rein", folgeEmoji: "\u{1F30B}",
+          folge: "Der Kuchen geht auf. Und auf. Und AUF. Er quillt aus dem Ofen wie ein Monster. {F} kämpft mit einem Kochlöffel dagegen an." }
+      ]
+    },
+    kind: {
+      aufgabe: "Essen wird gekocht. Schleich zum Trinkbecher von {O}!",
+      ziel: { x: 330, y: 290, emoji: "\u{1F964}", label: "sein Trinkbecher" },
+      optionen: [
+        { emoji: "\u{1F36E}", text: "Wackelpudding statt Saft", folgeEmoji: "\u{1F92B}",
+          merke: "wackel",
+          folge: "Heimlich eingefüllt. Sieht genau aus wie Saft. {O} merkt NICHTS. Das gibt beim Essen gleich ein Problem..." },
+        { emoji: "\u{1F573}", text: "Ein Loch in den Strohhalm", folgeEmoji: "\u{1F4A8}",
+          folge: "{O} saugt am Strohhalm. Es kommt nur Luft. Ganz laut. Zehn Minuten lang probiert {O} es immer wieder." }
+      ]
+    }
+  },
+
+  fernsehen: {
+    raum: "Wohnzimmer", emoji: "\u{1F4FA}",
+    aufgabe: "Familienabend vor dem Fernseher. Schleich zur Fernbedienung!",
+    boden: "#efe0d0", wand: "#7d5a44",
+    moebel: [
+      { x: 60,  y: 340, w: 230, h: 140, farbe: "#c98f8f", emoji: "\u{1F6CB}", label: "Sofa" },
+      { x: 640, y: 100, w: 200, h: 120, farbe: "#8a8f98", emoji: "\u{1F4FA}", label: "TV-Regal" },
+      { x: 90,  y: 100, w: 140, h: 130, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Palme" },
+      { x: 680, y: 390, w: 160, h: 130, farbe: "#d8c3a5", emoji: "\u{1F4DA}", label: "Bücher" }
+    ],
+    ziel: { x: 430, y: 430, emoji: "\u{1F4FA}", label: "Fernbedienung" },
+    routen: {
+      gross: [ {x:310,y:290},{x:600,y:290},{x:600,y:180},{x:310,y:180} ],
+      frau:  [ {x:350,y:490},{x:620,y:490} ],
+      k1:    [ {x:280,y:300},{x:280,y:420} ],
+      k2:    [ {x:620,y:300},{x:620,y:180} ]
+    },
+    spielerStart: { x: 830, y: 470 },
+    optionen: [
+      { emoji: "\u{1F50B}", text: "Batterien rausnehmen", folgeEmoji: "\u{1F620}",
+        folge: "{G} drückt. Nichts. Er drückt fester. Nichts. Er schüttelt die Fernbedienung und klopft sie sich gegen den Kopf. {K2} kringelt sich vor Lachen." },
+      { emoji: "\u{1F4A8}", text: "Furzkissen aufs Sofa", folgeEmoji: "\u{1F602}",
+        folge: "{G} lässt sich aufs Sofa fallen. PFFFFRRRT! Er springt hoch und ruft: DAS WAR ICH NICHT! Keiner glaubt ihm." }
+    ],
+    frau: {
+      aufgabe: "Familienabend. Schleich zum Strickzeug von {F}!",
+      ziel: { x: 430, y: 430, emoji: "\u{1F9F6}", label: "ihr Strickzeug" },
+      optionen: [
+        { emoji: "\u{1F9F6}", text: "Alle Wollknäül verknoten", folgeEmoji: "\u{1FAB9}",
+          folge: "{F} zieht am Faden. Es kommt ein Knoten. Und noch einer. Nach zehn Minuten sieht ihr Strickzeug aus wie ein Vogelnest." },
+        { emoji: "\u{1F453}", text: "Ihre Brille mit Folie bekleben", folgeEmoji: "\u{1F615}",
+          folge: "{F} setzt ihre Brille auf. Alles ist verschwommen. Sie putzt sie. Immer noch verschwommen. Sie sagt: Ich glaube, ich brauche neue Augen." }
+      ]
+    },
+    kind: {
+      aufgabe: "Familienabend. Schleich zum Sofaplatz von {O}!",
+      ziel: { x: 430, y: 430, emoji: "\u{1F6CB}", label: "sein Platz auf dem Sofa" },
+      optionen: [
+        { emoji: "\u{1F4A8}", text: "Furzkissen auf seinen Platz", folgeEmoji: "\u{1F602}",
+          folge: "{O} plumpst aufs Sofa. PFFFFRRT! Die ganze Familie dreht sich um. {O} wird knallrot und ruft: Das war das Kissen!" },
+        { emoji: "☁", text: "Watte statt Popcorn", folgeEmoji: "\u{1F615}",
+          folge: "{O} greift in die Schüssel und stopft sich eine Handvoll in den Mund. Es schmeckt nach nichts. Nach sehr, sehr viel Nichts." }
+      ]
+    }
+  },
+
+  abendessen: {
+    raum: "Esszimmer", emoji: "\u{1F37D}",
+    aufgabe: "Die ganze Familie isst. Schleich zu seinem Teller!",
+    boden: "#f0e2cc", wand: "#7a6540",
+    moebel: [
+      { x: 60,  y: 110, w: 180, h: 140, farbe: "#b0a08a", emoji: "\u{1F5C4}", label: "Buffet" },
+      { x: 700, y: 110, w: 140, h: 140, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" },
+      { x: 60,  y: 390, w: 180, h: 130, farbe: "#c98f8f", emoji: "\u{1FA91}", label: "Eckbank" },
+      { x: 690, y: 390, w: 150, h: 130, farbe: "#d8c3a5", emoji: "\u{1FA9F}", label: "Gardine" }
+    ],
+    ziel: { x: 450, y: 265, emoji: "\u{1F37D}", label: "sein Teller" },
+    routen: {
+      gross: [ {x:330,y:400},{x:610,y:400},{x:610,y:330},{x:330,y:330} ],
+      frau:  [ {x:320,y:180},{x:620,y:180} ],
+      k1:    [ {x:620,y:490},{x:310,y:490} ],
+      k2:    [ {x:280,y:300},{x:280,y:400} ]
+    },
+    spielerStart: { x: 130, y: 300 },
+    vorspann: {
+      wenn: "senf", emoji: "\u{1F92C}",
+      text: "ERINNERUNG: dein Ketchup-Trick von vorhin! {G} kippt sich einen riesigen roten Klecks aufs Essen, nimmt einen großen Bissen - und wird grün im Gesicht. DAS IST SENF! {K1} und {K2} kugeln sich vor Lachen, {F} muss weggucken."
+    },
+    optionen: [
+      { emoji: "\u{1F9F4}", text: "Teller am Tisch festkleben", folgeEmoji: "\u{1F624}",
+        folge: "{G} zieht am Teller. Der Teller bleibt. Er zieht fester. Der ganze Tisch rutscht mit ihm durchs Zimmer. {F} hält ihr Glas ganz fest." },
+      { emoji: "\u{1F374}", text: "Alle Gabeln verstecken", folgeEmoji: "\u{1F644}",
+        folge: "Keine einzige Gabel im ganzen Haus. Die ganze Familie isst Nudeln mit Suppenlöffeln. Es sieht sehr traurig aus." }
+    ],
+    frau: {
+      aufgabe: "Die ganze Familie isst. Schleich zum Platz von {F}!",
+      ziel: { x: 450, y: 265, emoji: "\u{1F95B}", label: "ihr Wasserglas" },
+      vorspann: {
+        wenn: "salzkuchen", emoji: "\u{1F92E}",
+        text: "ERINNERUNG: dein Salz-Kuchen von vorhin! Alle nehmen ein Stück. Alle kauen. Keiner sagt was. Dann probiert {F} selbst - und spuckt quer über den Tisch. {K1} und {K2} kippen fast von den Stühlen."
+      },
+      optionen: [
+        { emoji: "\u{1F9F4}", text: "Ihr Glas festkleben", folgeEmoji: "\u{1F624}",
+          folge: "{F} will ihr Glas heben. Das Glas will nicht. Sie zieht mit beiden Händen. Am Ende kommt das ganze Tischtuch mit." },
+        { emoji: "\u{1FAB0}", text: "Gummi-Fliege ins Wasserglas", folgeEmoji: "\u{1F631}",
+          folge: "{F} guckt in ihr Wasserglas. Da schwimmt eine dicke fette Fliege. Sie ruft nach {G}. {G} findet die Sache ziemlich lustig - eine Minute lang." }
+      ]
+    },
+    kind: {
+      aufgabe: "Abendessen! Schleich zum Teller von {O}!",
+      ziel: { x: 450, y: 265, emoji: "\u{1F37D}", label: "sein Teller" },
+      vorspann: {
+        wenn: "wackel", emoji: "\u{1F36E}",
+        text: "ERINNERUNG: dein Wackelpudding-Saft! {O} kippt den Becher zum Trinken - es kommt nichts. {O} schüttelt. Nichts. Dann PLOPP: ein ganzer Wackelpudding-Klumpen fällt mitten ins Gesicht."
+      },
+      optionen: [
+        { emoji: "\u{1FAD8}", text: "Erbsen unter den Nudeln verstecken", folgeEmoji: "\u{1F922}",
+          folge: "{O} schiebt die Nudeln zur Seite. Darunter: ein ganzer Berg Erbsen. {O} guckt {F} vorwurfsvoll an. {F} sagt: Ich war das nicht!" },
+        { emoji: "\u{1F374}", text: "Die Gabel verbiegen", folgeEmoji: "\u{1F624}",
+          folge: "{O} sticht in die Nudel. Die Gabel biegt sich einfach weg. Nach fünf Versuchen isst {O} mit den Händen. {G} sagt lieber nichts dazu." }
+      ]
+    }
+  },
+
+  kinderInsBett: {
+    raum: "Kinderzimmer", emoji: "\u{1F9F8}",
+    aufgabe: "{G} bringt {K1} und {K2} ins Bett. Schleich zum Gute-Nacht-Buch!",
+    boden: "#f3e0ea", wand: "#8a5f74",
+    moebel: [
+      { x: 60,  y: 100, w: 200, h: 150, farbe: "#f2c1d1", emoji: "\u{1F6CF}", label: "Hochbett" },
+      { x: 690, y: 100, w: 150, h: 150, farbe: "#c9b6e8", emoji: "\u{1F3E0}", label: "Puppenhaus" },
+      { x: 60,  y: 390, w: 190, h: 130, farbe: "#ffd9a0", emoji: "\u{1F9F8}", label: "Spielzeugkiste" },
+      { x: 690, y: 390, w: 150, h: 130, farbe: "#b98d5f", emoji: "\u{1F6AA}", label: "Schrank" }
+    ],
+    ziel: { x: 450, y: 285, emoji: "\u{1F4D6}", label: "Gute-Nacht-Buch" },
+    routen: {
+      gross: [ {x:320,y:230},{x:600,y:230},{x:600,y:420},{x:320,y:420} ],
+      frau:  [ {x:330,y:160},{x:620,y:160} ],
+      k1:    [ {x:620,y:490},{x:320,y:490} ],
+      k2:    [ {x:280,y:300},{x:280,y:410} ]
+    },
+    spielerStart: { x: 140, y: 300 },
+    optionen: [
+      { emoji: "\u{1F4D6}", text: "Alle Seiten im Buch vertauschen", folgeEmoji: "\u{1F923}",
+        folge: "{G} liest vor: Es war einmal ein Prinz... der fuhr mit dem Bagger... und wurde ein Käsebrot. {K1} und {K2} lachen so laut, dass sie überhaupt nicht mehr einschlafen wollen." },
+      { emoji: "\u{1F986}", text: "Quietsche-Ente unter die Matratze", folgeEmoji: "\u{1F986}",
+        folge: "{K2} legt sich hin. QUIIIETSCH. Nochmal. QUIIIETSCH. {G} sucht zwanzig Minuten lang das ganze Bett ab und findet nichts." }
+    ],
+    frau: {
+      aufgabe: "{F} bringt {K1} und {K2} ins Bett. Schleich zum Buch!",
+      ziel: { x: 450, y: 285, emoji: "\u{1F4D6}", label: "Gute-Nacht-Buch" },
+      optionen: [
+        { emoji: "\u{1F9F4}", text: "Die Seiten zusammenkleben", folgeEmoji: "\u{1F92A}",
+          folge: "{F} liest vor und will umblättern. Die Seiten kleben. Sie erfindet den Rest einfach selbst. Die Geschichte wird sehr, sehr verrückt." },
+        { emoji: "✏", text: "Alle Namen im Buch ändern", folgeEmoji: "\u{1F923}",
+          folge: "{F} liest: Es war einmal eine Prinzessin namens {K1}, die hatte einen Drachen namens {G}. {K1} und {K2} kreischen vor Lachen." }
+      ]
+    }
+  },
+
+  duschen: {
+    raum: "Badezimmer", emoji: "\u{1F6BF}",
+    aufgabe: "{G} will duschen. Schleich zum Shampoo!",
+    boden: "#d9eef5", wand: "#5f8ba0",
+    moebel: [
+      { x: 60,  y: 100, w: 170, h: 190, farbe: "#a7d8e8", emoji: "\u{1F6BF}", label: "Dusche" },
+      { x: 700, y: 340, w: 140, h: 130, farbe: "#e0c9a6", emoji: "\u{1F9FA}", label: "Wäschekorb" },
+      { x: 370, y: 430, w: 180, h: 95,  farbe: "#cfd8dc", emoji: "\u{1F6C1}", label: "Badewanne" },
+      { x: 715, y: 100, w: 125, h: 120, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" }
+    ],
+    ziel: { x: 330, y: 200, emoji: "\u{1F9F4}", label: "Shampoo" },
+    routen: {
+      gross: [ {x:600,y:280},{x:340,y:320},{x:340,y:430},{x:600,y:430} ],
+      frau:  [ {x:620,y:180},{x:620,y:300} ],
+      k1:    [ {x:300,y:150},{x:560,y:150} ],
+      k2:    [ {x:120,y:470},{x:340,y:470} ]
+    },
+    spielerStart: { x: 830, y: 500 },
+    optionen: [
+      { emoji: "\u{1F49A}", text: "Grüne Farbe ins Shampoo", folgeEmoji: "\u{1F9DF}",
+        folge: "{G} kommt aus der Dusche. Seine Haare sind giftgrün. Er schreit den Spiegel an: WAS IST MIT MEINEM KOPF PASSIERT?! {F} sagt: Steht dir." },
+      { emoji: "\u{1F4A6}", text: "Duschkopf umkleben", folgeEmoji: "\u{1F30A}",
+        folge: "{G} dreht das Wasser auf. Der Strahl schießt quer durchs Bad und trifft ihn voll ins Gesicht. Das ganze Badezimmer ist ein See." }
+    ],
+    frau: {
+      aufgabe: "{F} will duschen. Schleich zu ihrem Handtuch!",
+      ziel: { x: 330, y: 200, emoji: "\u{1F9FB}", label: "ihr Handtuch" },
+      optionen: [
+        { emoji: "\u{1F9CA}", text: "Handtuch eiskalt machen", folgeEmoji: "\u{1F976}",
+          folge: "{F} greift nach dem Handtuch - es ist steifgefroren wie ein Brett. Sie trocknet sich mit einem Eisblock ab und sagt kein Wort." },
+        { emoji: "\u{1F345}", text: "Ketchup statt Duschgel", folgeEmoji: "\u{1F35F}",
+          folge: "{F} drückt Duschgel raus. Es ist knallrot. Sie schreit kurz. Dann riecht sie dran und sagt verwirrt: ...Pommes?" }
+      ]
+    },
+    kind: {
+      aufgabe: "{O} muss in die Wanne. Schleich zum Schlafanzug!",
+      ziel: { x: 330, y: 200, emoji: "\u{1F9E6}", label: "sein Schlafanzug" },
+      optionen: [
+        { emoji: "\u{1F9CA}", text: "Den Schlafanzug eiskalt machen", folgeEmoji: "\u{1F976}",
+          folge: "{O} zieht den Schlafanzug an und macht einen Satz in die Luft. Eiskalt! {O} rennt dreimal um den Tisch, um wieder warm zu werden." },
+        { emoji: "\u{1F499}", text: "Blaue Farbe ins Shampoo", folgeEmoji: "\u{1F4F8}",
+          folge: "{O} kommt aus dem Bad. Die Haare sind knallblau. {F} sagt gar nichts. {G} macht heimlich ein Foto fürs Familienalbum." }
+      ]
+    }
+  },
+
+  insbett: {
+    raum: "Schlafzimmer", emoji: "\u{1F6CF}",
+    aufgabe: "Letzter Streich! Schleich zu seinem Bett!",
+    boden: "#e6dcc8", wand: "#5c4634",
+    moebel: [
+      { x: 60,  y: 100, w: 150, h: 170, farbe: "#b98d5f", emoji: "\u{1F6AA}", label: "Schrank" },
+      { x: 390, y: 100, w: 140, h: 100, farbe: "#9fd3c7", emoji: "\u{1FA9F}", label: "Vorhang" },
+      { x: 690, y: 390, w: 150, h: 130, farbe: "#d8c3a5", emoji: "\u{1F4E6}", label: "Kiste" },
+      { x: 60,  y: 380, w: 160, h: 140, farbe: "#c98f8f", emoji: "\u{1FA91}", label: "Sessel" }
+    ],
+    ziel: { x: 650, y: 250, emoji: "\u{1F6CF}", label: "sein Bett" },
+    routen: {
+      gross: [ {x:330,y:290},{x:560,y:420},{x:310,y:430},{x:290,y:240} ],
+      frau:  [ {x:350,y:230},{x:620,y:230} ],
+      k1:    [ {x:330,y:490},{x:620,y:490} ],
+      k2:    [ {x:620,y:300},{x:620,y:420} ]
+    },
+    spielerStart: { x: 120, y: 290 },
+    optionen: [
+      { emoji: "⏰", text: "Wecker auf 5 Uhr morgens", folgeEmoji: "⏰",
+        folge: "Um 5 Uhr morgens: RIIIIING! {G} fällt aus dem Bett, sucht im Dunkeln den Wecker und stolpert dabei über seine eigenen Hausschuhe. {F} schläft einfach weiter." },
+      { emoji: "\u{1F577}", text: "Gummispinnen unter die Bettdecke", folgeEmoji: "\u{1F577}",
+        folge: "{G} schlüpft ins Bett. Sein Fuß berührt etwas Haariges. Dann noch was. Und noch was. Er schreit so laut, dass bei den Nachbarn das Licht angeht." }
+    ],
+    frau: {
+      aufgabe: "Letzter Streich! Schleich zur Bettseite von {F}!",
+      ziel: { x: 650, y: 250, emoji: "\u{1F6CF}", label: "ihre Bettseite" },
+      optionen: [
+        { emoji: "⏰", text: "Wecker auf 4 Uhr morgens", folgeEmoji: "⏰",
+          folge: "Um 4 Uhr morgens: RIIIIING! {F} setzt sich kerzengerade auf, guckt den Wecker lange an und wirft ihn quer durchs Zimmer. {G} schläft weiter." },
+        { emoji: "\u{1F36A}", text: "Kekskrümel ins Bett", folgeEmoji: "\u{1F624}",
+          folge: "{F} legt sich hin. Es knirscht. Überall Krümel. Sie sagt zu {G}: Hast du wieder im Bett gegessen? {G} versteht die Welt nicht mehr." }
+      ]
+    }
+  }
+};
+
+/* ======================================================= Nur im Kind-Modus
+   Schule und Pause. Hier passen die Lehrerin und Mitschueler auf. */
+const SCHUL_ORDNUNG = ["lehrer", "k1", "k2", "freund"];
+
+RAEUME.klassenzimmer = {
+  raum: "Klassenzimmer", emoji: "\u{1F3EB}",
+  aufgabe: "{O} hat Unterricht. Schleich zum Federmäppchen!",
+  boden: "#e9e4d4", wand: "#5d6b4a",
+  wachOrdnung: SCHUL_ORDNUNG,
+  moebel: [
+    { x: 60,  y: 100, w: 180, h: 140, farbe: "#b0a08a", emoji: "\u{1F5C4}", label: "Schrank" },
+    { x: 690, y: 100, w: 150, h: 140, farbe: "#8a8f98", emoji: "\u{1F4DA}", label: "Bücherregal" },
+    { x: 60,  y: 390, w: 180, h: 130, farbe: "#a9c6a0", emoji: "\u{1F9E5}", label: "Garderobe" },
+    { x: 690, y: 390, w: 150, h: 130, farbe: "#9fc7d8", emoji: "\u{1F6B0}", label: "Waschbecken" }
+  ],
+  ziel: { x: 450, y: 280, emoji: "✏", label: "sein Federmäppchen" },
+  routen: {
+    k1:     [ {x:320,y:210},{x:600,y:210},{x:600,y:420},{x:320,y:420} ],
+    lehrer: [ {x:320,y:150},{x:640,y:150} ],
+    k2:     [ {x:330,y:490},{x:620,y:490} ],
+    freund: [ {x:280,y:300},{x:280,y:410} ]
+  },
+  spielerStart: { x: 130, y: 290 },
+  optionen: [
+    { emoji: "\u{1F955}", text: "Alle Stifte gegen Möhren tauschen", folgeEmoji: "\u{1F955}",
+      folge: "{O} macht das Mäppchen auf. Drei Möhren und ein Radieschen. {L} guckt kurz hin und sagt: Interessantes Federmäppchen." },
+    { emoji: "\u{1F36C}", text: "Kaugummi statt Radiergummi", folgeEmoji: "\u{1F9F4}",
+      folge: "{O} radiert. Es wird nicht sauber - es wird klebrig. Am Ende klebt das ganze Heft am Tisch fest." }
+  ]
+};
+
+RAEUME.pause = {
+  raum: "Schulhof", emoji: "⚽",
+  aufgabe: "Große Pause! Schleich zum Pausenbrot von {O}!",
+  boden: "#d6d3c4", wand: "#6f8b5a",
+  wachOrdnung: SCHUL_ORDNUNG,
+  moebel: [
+    { x: 60,  y: 100, w: 180, h: 150, farbe: "#8fbf7a", emoji: "\u{1F333}", label: "Baum" },
+    { x: 690, y: 100, w: 150, h: 150, farbe: "#c9a06a", emoji: "\u{1F3D0}", label: "Klettergerüst" },
+    { x: 60,  y: 390, w: 180, h: 130, farbe: "#e3d5a8", emoji: "\u{1FAA3}", label: "Sandkasten" },
+    { x: 690, y: 390, w: 150, h: 130, farbe: "#b98d5f", emoji: "\u{1FA91}", label: "Bank" }
+  ],
+  ziel: { x: 450, y: 290, emoji: "\u{1F96A}", label: "sein Pausenbrot" },
+  routen: {
+    k1:     [ {x:300,y:230},{x:610,y:230},{x:610,y:420},{x:300,y:420} ],
+    lehrer: [ {x:300,y:160},{x:640,y:160} ],
+    k2:     [ {x:340,y:490},{x:630,y:490} ],
+    freund: [ {x:280,y:300},{x:280,y:420} ]
+  },
+  spielerStart: { x: 130, y: 300 },
+  optionen: [
+    { emoji: "\u{1F9F8}", text: "Gummibärchen aufs Wurstbrot", folgeEmoji: "\u{1F60B}",
+      folge: "{O} beißt rein. Wurst, Käse - und Gummibärchen. {O} isst es komplett auf und findet es das beste Brot aller Zeiten." },
+    { emoji: "\u{1F9FD}", text: "Brot gegen einen Schwamm tauschen", folgeEmoji: "\u{1F92E}",
+      folge: "{O} beißt zu. Es quietscht. Es schmeckt nach Spülmittel. Der halbe Schulhof bleibt stehen und guckt." }
+  ]
+};
+
+/* Das Kinderzimmer zu drei Tageszeiten - gleicher Raum, andere Streiche. */
+function variante(basisId, daten) {
+  const b = RAEUME[basisId];
+  return {
+    raum: daten.raum || b.raum, emoji: daten.emoji || b.emoji,
+    boden: b.boden, wand: b.wand, moebel: b.moebel,
+    routen: b.routen, spielerStart: b.spielerStart,
+    aufgabe: daten.aufgabe, ziel: daten.ziel,
+    optionen: daten.optionen, vorspann: daten.vorspann
+  };
+}
+
+RAEUME.kindMorgen = variante("kinderInsBett", {
+  emoji: "\u{1F392}",
+  aufgabe: "Aufstehen! Schleich zum Schulranzen von {O}!",
+  ziel: { x: 450, y: 285, emoji: "\u{1F392}", label: "sein Schulranzen" },
+  optionen: [
+    { emoji: "\u{1F4D3}", text: "Alle Hefte verkehrtherum einräumen", folgeEmoji: "\u{1F644}",
+      folge: "{O} packt in der Schule aus. Jedes einzelne Heft ist verkehrtherum drin. {O} braucht die ganze erste Stunde nur zum Sortieren." },
+    { emoji: "\u{1F9F1}", text: "Einen Ziegelstein reinpacken", folgeEmoji: "\u{1F975}",
+      folge: "{O} hebt den Ranzen hoch und kippt fast nach hinten um. Ganz unten liegt ein Ziegelstein mit einem gemalten Smiley drauf." }
+  ]
+});
+
+RAEUME.kindAbend = variante("kinderInsBett", {
+  emoji: "\u{1F9F8}",
+  aufgabe: "{G} liest vor. Schleich zum Kuscheltier von {O}!",
+  ziel: { x: 450, y: 285, emoji: "\u{1F9F8}", label: "sein Kuscheltier" },
+  optionen: [
+    { emoji: "\u{1F952}", text: "Kuscheltier gegen eine Gurke tauschen", folgeEmoji: "\u{1F952}",
+      folge: "{O} greift nach dem Kuscheltier und hat eine kalte Gurke im Arm. {O} guckt sie lange an und sagt dann: Gute Nacht, Herr Gurke." },
+    { emoji: "\u{1F986}", text: "Eine Quietsche ins Kuscheltier", folgeEmoji: "\u{1F986}",
+      folge: "{O} drückt das Kuscheltier. QUIIIETSCH. Nochmal. QUIIIETSCH. Es hört die ganze Nacht nicht mehr auf." }
+  ]
+});
+
+RAEUME.kindBett = variante("kinderInsBett", {
+  emoji: "\u{1F6CF}",
+  aufgabe: "Letzter Streich! Schleich zum Bett von {O}!",
+  ziel: { x: 620, y: 300, emoji: "\u{1F6CF}", label: "sein Bett" },
+  optionen: [
+    { emoji: "⏰", text: "Wecker auf 5 Uhr morgens", folgeEmoji: "⏰",
+      folge: "Um 5 Uhr morgens: RIIIIING! {O} setzt sich auf, guckt aus dem Fenster - stockdunkel - und schläft im Sitzen einfach wieder ein." },
+    { emoji: "\u{1F577}", text: "Gummispinnen unter die Bettdecke", folgeEmoji: "\u{1F577}",
+      folge: "{O} schlüpft ins Bett und tritt gegen etwas Haariges. Und noch was. {O} schreit einmal kurz - und findet es dann ziemlich cool." }
+  ]
+});
+
+/* ===================================================== Nur am Oma-Tag
+   Die Eltern sind bei Freunden, die Oma passt auf. Erst zu Hause bei der
+   Oma, dann bei den Freunden - im Cafe oder beim Grillen (vorher aussuchen). */
+RAEUME.toniebox = {
+  raum: "Kinderzimmer", emoji: "\u{1F4FB}",
+  aufgabe: "{OMA} macht die Toniebox an. Schleich hin!",
+  opferText: "{OMA}",
+  boden: "#f3e0ea", wand: "#8a5f74",
+  wachOrdnung: ["oma", "k1", "k2"],
+  moebel: [
+    { x: 60,  y: 100, w: 200, h: 150, farbe: "#f2c1d1", emoji: "\u{1F6CF}", label: "Hochbett" },
+    { x: 690, y: 100, w: 150, h: 150, farbe: "#c9b6e8", emoji: "\u{1F3E0}", label: "Puppenhaus" },
+    { x: 60,  y: 390, w: 190, h: 130, farbe: "#ffd9a0", emoji: "\u{1F9F8}", label: "Spielzeugkiste" },
+    { x: 690, y: 390, w: 150, h: 130, farbe: "#b98d5f", emoji: "\u{1F6AA}", label: "Schrank" }
+  ],
+  ziel: { x: 450, y: 285, emoji: "\u{1F4FB}", label: "Toniebox" },
+  routen: {
+    oma: [ {x:330,y:200},{x:580,y:200},{x:580,y:400},{x:330,y:400} ],
+    k1:  [ {x:620,y:490},{x:320,y:490} ],
+    k2:  [ {x:280,y:300},{x:280,y:410} ]
+  },
+  spielerStart: { x: 140, y: 300 },
+  optionen: [
+    { emoji: "\u{1F3B8}", text: "Die Tonie-Figur tauschen", folgeEmoji: "\u{1F918}",
+      folge: "{OMA} drückt aufs Ohr der Toniebox. Statt Märchen kommt: LAUTE ROCKMUSIK! {K1} und {K2} hüpfen auf dem Bett. Und die Oma? Die spielt Luftgitarre." },
+    { emoji: "\u{1F9C8}", text: "Butter auf Omas Brille", folgeEmoji: "\u{1F635}",
+      folge: "{OMA} setzt die Brille auf und will vorlesen. Alles ist verschwommen. Sie liest: Es war einmal ein... Kühlschrank? {K1} und {K2} lachen so laut, dass die Nachbarn klopfen." }
+  ]
+};
+
+RAEUME.grillen = {
+  raum: "Garten der Freunde", emoji: "\u{1F356}",
+  aufgabe: "Grillen bei {F1} und {F2}! Schleich zum Grill!",
+  opferText: "{F1} und {F2}",
+  boden: "#c5e3a5", wand: "#5d8a4a",
+  wachOrdnung: ["f1", "f2", "gross", "frau"],
+  moebel: [
+    { x: 60,  y: 100, w: 190, h: 130, farbe: "#8fbf7a", emoji: "\u{1F333}", label: "Baum" },
+    { x: 690, y: 100, w: 150, h: 150, farbe: "#d8b48a", emoji: "\u{1F3E1}", label: "Gartenhaus" },
+    { x: 60,  y: 390, w: 180, h: 120, farbe: "#f5d76e", emoji: "\u{1F33B}", label: "Blumenbeet" },
+    { x: 690, y: 400, w: 150, h: 110, farbe: "#f2a7a0", emoji: "⛱", label: "Sonnenschirm" }
+  ],
+  ziel: { x: 450, y: 300, emoji: "\u{1F32D}", label: "der Grill" },
+  routen: {
+    f1:    [ {x:330,y:210},{x:600,y:210},{x:600,y:400},{x:330,y:400} ],
+    f2:    [ {x:320,y:480},{x:620,y:480} ],
+    gross: [ {x:640,y:290},{x:640,y:370} ],
+    frau:  [ {x:350,y:140},{x:620,y:140} ]
+  },
+  spielerStart: { x: 130, y: 310 },
+  optionen: [
+    { emoji: "\u{1F36B}", text: "Schoko-Würstchen auf den Grill", folgeEmoji: "\u{1F632}",
+      folge: "{F1} legt die Würstchen auf den Grill. Sie werden weich... und weicher... und tropfen durch den Rost. Der ganze Garten riecht nach Schokokuchen." },
+    { emoji: "\u{1F353}", text: "Erdbeersoße statt Ketchup", folgeEmoji: "\u{1F92A}",
+      folge: "{F2} macht ganz viel Ketchup auf die Wurst und beißt rein. Süß! Nach Erdbeeren! {F2} guckt die Wurst lange an und sagt: Das ist ja ein Wurst-Nachtisch." }
+  ]
+};
+
+RAEUME.cafe = {
+  raum: "Café", emoji: "☕",
+  aufgabe: "Kaffee und Kuchen mit {F1} und {F2}! Schleich hin!",
+  opferText: "{F1} und {F2}",
+  boden: "#f3e3cf", wand: "#7a5236",
+  wachOrdnung: ["f1", "f2", "gross", "frau"],
+  moebel: [
+    { x: 60,  y: 100, w: 200, h: 120, farbe: "#f2c6d6", emoji: "\u{1F370}", label: "Kuchentheke" },
+    { x: 700, y: 100, w: 140, h: 130, farbe: "#b98d5f", emoji: "\u{1F9E5}", label: "Garderobe" },
+    { x: 60,  y: 400, w: 170, h: 110, farbe: "#bcd4c6", emoji: "\u{1FAB4}", label: "Pflanze" },
+    { x: 700, y: 400, w: 140, h: 110, farbe: "#d8c3a5", emoji: "\u{1F4F0}", label: "Zeitungen" }
+  ],
+  ziel: { x: 450, y: 300, emoji: "☕", label: "der Tisch" },
+  routen: {
+    f1:    [ {x:330,y:220},{x:580,y:220},{x:580,y:390},{x:330,y:390} ],
+    f2:    [ {x:300,y:150},{x:620,y:150} ],
+    gross: [ {x:300,y:480},{x:620,y:480} ],
+    frau:  [ {x:290,y:280},{x:290,y:370} ]
+  },
+  spielerStart: { x: 820, y: 320 },
+  optionen: [
+    { emoji: "\u{1F9C2}", text: "Salz statt Zucker in den Kaffee", folgeEmoji: "\u{1F922}",
+      folge: "{F1} trinkt einen großen Schluck. Das Gesicht wird ganz klein und schrumpelig. PFFFT! Der Kaffee landet auf der Tischdecke. Und ein bisschen auf {G}." },
+    { emoji: "\u{1F9FD}", text: "Kuchen gegen einen Schwamm mit Sahne tauschen", folgeEmoji: "\u{1F9FD}",
+      folge: "{F2} sticht mit der Gabel in den Kuchen. Er quietscht. {F2} beißt trotzdem rein. Es schmeckt nach Spülmittel mit Sahne. Das ganze Café guckt." }
+  ]
+};
+
+/* Die Oma-Streiche in den normalen Raeumen. Wenn die Oma dran ist, gelten
+   diese hier. Optional: emoji (anderes Bild im Brief), wachOrdnung (wer
+   aufpasst), routeOma (eigener Laufweg fuer die Oma).                     */
+const OMA_ORDNUNG = ["oma", "k1", "k2"];
+
+RAEUME.jacke.oma = {
+  emoji: "\u{1F45C}",
+  aufgabe: "{OMA} kommt an! Schleich zu ihrer Handtasche!",
+  ziel: { x: 640, y: 190, emoji: "\u{1F45C}", label: "Omas Handtasche" },
+  optionen: [
+    { emoji: "\u{1F577}", text: "Gummispinne in die Handtasche", folgeEmoji: "\u{1F631}",
+      folge: "{OMA} greift in die Handtasche nach ihrem Taschentuch. Sie fühlt etwas Haariges... IIIIIH! Die Handtasche fliegt durch den ganzen Flur. Die Spinne landet auf dem Kopf von {K2}." },
+    { emoji: "\u{1F955}", text: "Omas Schlüssel gegen eine Karotte tauschen", folgeEmoji: "\u{1F955}",
+      folge: "{OMA} will die Haustür abschließen und steckt... eine Karotte ins Schloss. Sie guckt die Karotte lange an. Dann isst sie sie einfach auf." }
+  ]
+};
+
+RAEUME.fruehstueck.oma = {
+  aufgabe: "{OMA} macht Frühstück. Schleich zu ihrem Platz!",
+  ziel: { x: 450, y: 310, emoji: "\u{1F95A}", label: "Omas Ei und Tee" },
+  optionen: [
+    { emoji: "\u{1F95A}", text: "Ein rohes Ei als Frühstücksei", folgeEmoji: "\u{1F633}",
+      folge: "{OMA} klopft aufs Ei. KNACK - SPLATSCH! Das Ei ist roh! Eigelb überall, sogar auf der Brille. {K1} sagt: Guten Appetit, Oma!" },
+    { emoji: "\u{1F986}", text: "Gummi-Ente in die Teekanne", folgeEmoji: "\u{1F986}",
+      folge: "{OMA} gießt Tee ein. Es gluckert. Dann ploppt eine kleine gelbe Ente in die Tasse und schwimmt da. Die Oma sagt: Na, wer bist DU denn?" }
+  ]
+};
+
+RAEUME.schuleBringen.oma = {
+  aufgabe: "{OMA} bringt die Kinder zur Schule. Schleich zum Hut!",
+  ziel: { x: 450, y: 290, emoji: "\u{1F452}", label: "Omas Hut und Schirm" },
+  optionen: [
+    { emoji: "\u{1F38A}", text: "Konfetti in den Regenschirm", folgeEmoji: "\u{1F389}",
+      folge: "Es fängt an zu nieseln. {OMA} spannt den Schirm auf - KONFETTI-REGEN! Alle Kinder vor der Schule jubeln. Die Oma winkt wie ein Filmstar." },
+    { emoji: "\u{1F372}", text: "Den Hut gegen einen Kochtopf tauschen", folgeEmoji: "\u{1F372}",
+      folge: "{OMA} setzt ihren Hut auf. Er ist sehr schwer und klappert. Es ist ein Kochtopf! Sie bringt die Kinder trotzdem bis zur Tür und grüsst alle ganz vornehm." }
+  ]
+};
+
+RAEUME.kochen.oma = {
+  aufgabe: "{OMA} kocht Mittagessen. Schleich zum Kochtopf!",
+  ziel: { x: 330, y: 290, emoji: "\u{1F35D}", label: "Omas Kochtopf" },
+  wachOrdnung: ["oma"],                 // die Kinder sind noch in der Schule
+  optionen: [
+    { emoji: "\u{1F9F8}", text: "Gummibärchen in die Nudeln", folgeEmoji: "\u{1F60B}",
+      folge: "{OMA} rührt die Nudeln um. Plötzlich schwimmen da bunte Gummibärchen drin! {K1} und {K2} finden: Das ist das beste Mittagessen der Welt." },
+    { emoji: "\u{1F336}", text: "Ganz viel Pfeffer in die Soße", folgeEmoji: "\u{1F927}",
+      folge: "{OMA} probiert die Soße. HAAA... HAAAA... HATSCHI! Und nochmal: HATSCHI! HATSCHI! Die Oma niest so doll, dass die Topfdeckel wackeln." }
+  ]
+};
+
+RAEUME.schuleHolen.oma = {
+  aufgabe: "{OMA} holt die Kinder mit dem Rad ab. Schleich hin!",
+  ziel: { x: 450, y: 280, emoji: "\u{1F6B2}", label: "Omas Fahrrad" },
+  optionen: [
+    { emoji: "\u{1F418}", text: "Die Klingel gegen eine Hupe tauschen", folgeEmoji: "\u{1F4E2}",
+      folge: "{OMA} will klingeln. TROOOOOT! Wie ein Elefant! Alle Eltern auf dem Parkplatz drehen sich um. Die Oma macht es gleich nochmal, weil es so lustig ist." },
+    { emoji: "\u{1F388}", text: "Luftballons an den Gepäckträger", folgeEmoji: "\u{1F388}",
+      folge: "{OMA} fährt los und die Luftballons ziehen nach oben. Fast fliegt sie! {K1} und {K2} rennen lachend hinterher und rufen: Oma, warte!" }
+  ]
+};
+
+RAEUME.fernsehen.oma = {
+  emoji: "\u{1F634}",
+  aufgabe: "{OMA} macht Mittagsschlaf. Psst! Schleich hin!",
+  ziel: { x: 400, y: 300, emoji: "\u{1F9B7}", label: "Omas Hausschuhe und Glas" },
+  routeOma: [ {x:120,y:410},{x:230,y:410} ],   // die Oma liegt auf dem Sofa und waelzt sich
+  optionen: [
+    { emoji: "\u{1FAA2}", text: "Omas Hausschuhe zusammenbinden", folgeEmoji: "\u{1F998}",
+      folge: "{OMA} wacht auf, schlüpft in ihre Hausschuhe und will aufstehen. HOPP! HOPP! HOPP! Sie hüpft wie ein Känguru durchs ganze Wohnzimmer." },
+    { emoji: "\u{1FAE7}", text: "Brausepulver ins Glas mit den dritten Zähnen", folgeEmoji: "\u{1F9B7}",
+      folge: "Das Glas fängt an zu sprudeln und zu schäumen. Die dritten Zähne tanzen im Glas herum! {OMA} wacht auf, guckt hin und sagt: Na, ihr habt ja gute Laune." }
+  ]
+};
+
+RAEUME.abendessen.oma = {
+  aufgabe: "Abendessen bei {OMA}! Schleich zu ihrem Teller!",
+  ziel: { x: 450, y: 265, emoji: "\u{1F37D}", label: "Omas Teller" },
+  optionen: [
+    { emoji: "\u{1F440}", text: "Wackelaugen auf die Kartoffeln", folgeEmoji: "\u{1F954}",
+      folge: "{OMA} guckt auf ihren Teller. Zwanzig Kartoffeln gucken zurück! Sie sagt: Euch kann ich doch nicht essen, ihr guckt so lieb." },
+    { emoji: "\u{1F35D}", text: "Die Spaghetti blau färben", folgeEmoji: "\u{1F975}",
+      folge: "Blaue Spaghetti! {OMA} setzt die Brille auf, nimmt sie ab, setzt sie wieder auf. Dann isst sie tapfer alles auf und hat eine knallblaue Zunge." }
+  ]
+};
+
+RAEUME.aufraeumen.oma = {
+  emoji: "\u{1F4FA}",
+  aufgabe: "{OMA} guckt mit den Kindern eine Serie. Schleich hin!",
+  ziel: { x: 460, y: 270, emoji: "\u{1F37F}", label: "Popcorn und Fernseher" },
+  optionen: [
+    { emoji: "\u{1F30F}", text: "Den Fernseher auf Chinesisch stellen", folgeEmoji: "\u{1F914}",
+      folge: "Ni hao! Alle in der Serie reden plötzlich Chinesisch. {OMA} drückt auf alle Knöpfe. Dann sagt sie: Ich verstehe es trotzdem. {K1} und {K2} glauben ihr kein Wort." },
+    { emoji: "\u{1F9E6}", text: "Socken in die Popcorn-Schüssel", folgeEmoji: "\u{1F922}",
+      folge: "{OMA} greift in die Schüssel und hat plötzlich eine Socke in der Hand. Eine gestreifte. Sie guckt sie an und fragt: Seit wann gibt es Popcorn mit Ringeln?" }
+  ]
+};
+
+/* Mensch aergere dich nicht draussen auf der Terrasse - nur am Oma-Tag. */
+RAEUME.brettspiel = {
+  raum: "Terrasse", emoji: "\u{1F3B2}",
+  aufgabe: "{OMA} spielt Mensch ärgere dich nicht. Schleich zum Spielbrett!",
+  boden: "#e8dcc4", wand: "#6f8b5a",
+  wachOrdnung: OMA_ORDNUNG,
+  moebel: [
+    { x: 60,  y: 100, w: 190, h: 130, farbe: "#8fbf7a", emoji: "\u{1F333}", label: "Hecke" },
+    { x: 690, y: 100, w: 150, h: 150, farbe: "#f2c38a", emoji: "\u{1F6DD}", label: "Rutsche" },
+    { x: 60,  y: 390, w: 180, h: 120, farbe: "#f4b6c8", emoji: "\u{1F337}", label: "Blumen" },
+    { x: 690, y: 400, w: 150, h: 110, farbe: "#c9a06a", emoji: "\u{1FA91}", label: "Gartenbank" }
+  ],
+  ziel: { x: 450, y: 300, emoji: "\u{1F3B2}", label: "das Spielbrett" },
+  routen: {
+    oma: [ {x:330,y:220},{x:580,y:220},{x:580,y:390},{x:330,y:390} ],
+    k1:  [ {x:320,y:480},{x:620,y:480} ],
+    k2:  [ {x:300,y:150},{x:620,y:150} ]
+  },
+  spielerStart: { x: 130, y: 300 },
+  optionen: [
+    { emoji: "\u{1F9F8}", text: "Die Spielfiguren gegen Gummibärchen tauschen", folgeEmoji: "\u{1F60B}",
+      folge: "{OMA} will ihre Figur ziehen - und isst sie aus Versehen auf. {K1} ruft: Oma, du hast deine Figur gegessen! Am Ende sind alle Figuren aufgegessen. Keiner hat gewonnen, aber alle sind satt." },
+    { emoji: "\u{1F4A8}", text: "Furzkissen auf Omas Stuhl", folgeEmoji: "\u{1F4A8}",
+      folge: "{OMA} setzt sich hin. PFFFFRRRT! {K1} und {K2} fallen vor Lachen fast vom Stuhl. Die Oma sagt ganz ernst: Das war der Würfel." }
+  ]
+};
+
+/* Wo treffen sich die Eltern mit den Freunden? Wird vor dem Spiel ausgesucht. */
+const ORTE = {
+  cafe:    { name: "Café",   emoji: "☕",       unter: "Kaffee und Kuchen",
+             zeit: "Später Nachmittag", tint: "rgba(255,175,85,.16)", musik: "morgen" },
+  grillen: { name: "Garten", emoji: "\u{1F356}", unter: "Grillen bei den Freunden",
+             zeit: "Abend", tint: "rgba(255,120,50,.22)", musik: "rock" }
+};
+const ORT_IDS = ["cafe", "grillen"];
+
+/* ================================================================ Tagesplaene */
+/* z(...) = ein Level.  idKind = wenn ein Kind das Opfer ist, gilt dieser Raum.
+   nur:"kind" = dieses Level gibt es nur, wenn ein Kind das Opfer ist.        */
+function z(name, tint, musik, id, idKind, nur) { return { name, tint, musik, id, idKind, nur }; }
+
+const TAGE = {
+  wochenende: {
+    name: "Wochenende", emoji: "\u{1F3E0}",
+    unter: "Alle sind zu Hause",
+    ablauf: [
+      z("Früher Morgen", "rgba(255,190,110,.14)", "schlaf", "hausschuhe", "kindMorgen"),
+      z("Morgen",         "rgba(255,215,150,.07)", "morgen", "zaehne"),
+      z("Morgen",         "rgba(255,255,255,0)",   "morgen", "fruehstueck"),
+      z("Vormittag",      "rgba(255,255,255,0)",   "rock",   "aufraeumen"),
+      z("Vormittag",      "rgba(255,255,255,0)",   "rock",   "jacke"),
+      z("Mittag",         "rgba(255,250,220,.05)", "rock",   "supermarkt"),
+      z("Nachmittag",     "rgba(255,180,90,.13)",  "rock",   "kochen"),
+      z("Abend",          "rgba(255,120,50,.22)",  "rock",   "abendessen"),
+      z("Abend",          "rgba(255,105,45,.25)",  "rock",   "fernsehen"),
+      z("Nacht",          "rgba(35,45,130,.40)",   "abend",  "duschen"),
+      z("Gute Nacht",     "rgba(15,20,85,.52)",    "schlaf", "insbett", "kindBett")
+    ]
+  },
+  arbeitstag: {
+    name: "Arbeitstag", emoji: "\u{1F4BC}",
+    unter: "Schule, Arbeit und Einkaufen",
+    ablauf: [
+      z("Früher Morgen", "rgba(255,190,110,.14)", "schlaf", "hausschuhe", "kindMorgen"),
+      z("Morgen",         "rgba(255,215,150,.07)", "morgen", "zaehne"),
+      z("Morgen",         "rgba(255,255,255,0)",   "morgen", "fruehstueck"),
+      z("Vormittag",      "rgba(255,255,255,0)",   "rock",   "schuleBringen"),
+      z("Vormittag",      "rgba(255,255,255,0)",   "rock",   "buero", "klassenzimmer"),
+      z("Mittag",         "rgba(255,250,220,.05)", "rock",   "pause", null, "kind"),
+      z("Nachmittag",     "rgba(255,190,100,.10)", "rock",   "schuleHolen"),
+      z("Nachmittag",     "rgba(255,175,85,.16)",  "rock",   "supermarkt"),
+      z("Abend",          "rgba(255,120,50,.22)",  "rock",   "kochen"),
+      z("Abend",          "rgba(255,105,45,.25)",  "abend",  "abendessen"),
+      z("Später Abend",  "rgba(110,80,175,.28)",  "abend",  "kinderInsBett", "kindAbend"),
+      z("Nacht",          "rgba(35,45,130,.40)",   "abend",  "duschen"),
+      z("Gute Nacht",     "rgba(15,20,85,.52)",    "schlaf", "insbett", "kindBett")
+    ]
+  },
+  oma: {
+    name: "Oma passt auf", emoji: "\u{1F475}",
+    unter: "Die Eltern sind den ganzen Tag weg",
+    ablauf: [
+      z("Früher Morgen", "rgba(255,190,110,.14)", "schlaf", "jacke"),
+      z("Morgen",         "rgba(255,215,150,.07)", "morgen", "fruehstueck"),
+      z("Vormittag",      "rgba(255,255,255,0)",   "rock",   "schuleBringen"),
+      z("Mittag",         "rgba(255,250,220,.05)", "rock",   "kochen"),
+      z("Mittag",         "rgba(255,250,220,.05)", "rock",   "schuleHolen"),
+      z("Nachmittag",     "rgba(255,190,100,.10)", "schlaf", "fernsehen"),
+      z("Nachmittag",     "rgba(255,180,90,.13)",  "abend",  "toniebox"),
+      z("Später Nachmittag", "rgba(255,175,85,.16)", "rock", "brettspiel"),
+      z("Abend",          "rgba(255,120,50,.22)",  "abend",  "abendessen"),
+      z("Später Abend",  "rgba(110,80,175,.28)",  "abend",  "aufraeumen")
+    ]
+  }
+};
+const TAG_IDS = ["wochenende", "arbeitstag", "oma"];
+
+/* ==================================================================== Musik */
+let actx = null, master = null, musikAn = true;
+let mood = null, schritt = 0, naechsteZeit = 0;
+
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function audioStart() {
+  if (actx) { if (actx.state === "suspended") actx.resume(); return; }
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  master = actx.createGain();
+  master.gain.value = musikAn ? 0.22 : 0;
+  master.connect(actx.destination);
+  setInterval(planer, 25);
+}
+
+function ton(freq, zeit, dauer, typ, laut) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = typ; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, zeit);
+  g.gain.linearRampToValueAtTime(laut, zeit + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0008, zeit + dauer);
+  o.connect(g); g.connect(master);
+  o.start(zeit); o.stop(zeit + dauer + 0.05);
+}
+
+function rausch(zeit, dauer, laut, hoch) {
+  const n = Math.max(1, Math.floor(actx.sampleRate * dauer));
+  const buf = actx.createBuffer(1, n, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = actx.createBufferSource(); s.buffer = buf;
+  const f = actx.createBiquadFilter();
+  f.type = hoch ? "highpass" : "lowpass";
+  f.frequency.value = hoch ? 5500 : 200;
+  const g = actx.createGain(); g.gain.value = laut;
+  s.connect(f); f.connect(g); g.connect(master);
+  s.start(zeit);
+}
+
+const MUSIK = {
+  schlaf: {
+    bpm: 50,
+    spiel(s, t) {
+      const akk = [[60,64,67,72],[57,60,64,69],[53,57,60,65],[55,59,62,67]];
+      const a = akk[Math.floor(s / 4) % 4];
+      if (s % 4 === 0) ton(hz(a[0] - 24), t, 2.6, "sine", .16);
+      ton(hz(a[[0,2,1,3][s % 4]]), t, 1.2, "sine", .10);
+      if (s % 8 === 6) ton(hz(a[3] + 12), t, 1.6, "sine", .05);
+    }
+  },
+  morgen: {
+    bpm: 104,
+    spiel(s, t) {
+      const akk = [[60,64,67],[62,65,69],[64,67,71],[59,62,67]];
+      const a = akk[Math.floor(s / 4) % 4];
+      ton(hz(a[s % 3]), t, .22, "triangle", .11);
+      if (s % 4 === 0) { ton(hz(a[0] - 24), t, .5, "sine", .20); rausch(t, .12, .12, false); }
+      if (s % 8 === 4) rausch(t, .05, .05, true);
+    }
+  },
+  rock: {
+    bpm: 152,
+    spiel(s, t) {
+      const riff = [40,40,47,45,40,40,43,45, 40,40,47,45,50,48,47,45];
+      ton(hz(riff[s % 16]), t, .18, "square", .13);
+      const lead = [64,67,71,67,64,62,64,-1, 67,71,74,71,67,64,62,-1];
+      const n = lead[s % 16];
+      if (n > 0) ton(hz(n), t, .16, "sawtooth", .07);
+      if (s % 4 === 0) rausch(t, .14, .30, false);
+      if (s % 8 === 4) rausch(t, .13, .16, true);
+      if (s % 2 === 0) rausch(t, .03, .05, true);
+    }
+  },
+  abend: {
+    bpm: 82,
+    spiel(s, t) {
+      const akk = [[57,60,64,67],[55,59,62,65],[53,57,60,64],[52,55,59,62]];
+      const a = akk[Math.floor(s / 4) % 4];
+      if (s % 4 === 0) ton(hz(a[0] - 12), t, 1.2, "sine", .17);
+      ton(hz(a[(s * 3) % 4]), t, .5, "triangle", .07);
+      if (s % 4 === 2) rausch(t, .04, .04, true);
+    }
+  }
+};
+
+function planer() {
+  if (!actx || !mood) return;
+  const m = MUSIK[mood];
+  const dauer = 60 / m.bpm / 4;
+  while (naechsteZeit < actx.currentTime + 0.12) {
+    m.spiel(schritt % 16, Math.max(naechsteZeit, actx.currentTime + 0.01));
+    schritt++;
+    naechsteZeit += dauer;
+  }
+}
+
+function musikSetzen(neu) {
+  if (!actx || mood === neu) return;
+  mood = neu; schritt = 0; naechsteZeit = actx.currentTime + 0.05;
+}
+
+function musikUmschalten() {
+  musikAn = !musikAn;
+  if (master) master.gain.value = musikAn ? 0.22 : 0;
+}
+
+function erfolgKlang() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  [60,64,67,72].forEach((n, i) => ton(hz(n), t + i * .09, .3, "triangle", .22));
+}
+
+function erwischtKlang() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  [64,60,55,48].forEach((n, i) => ton(hz(n), t + i * .11, .35, "sawtooth", .16));
+}
+
+/* ==================================================================== Spiel */
+let namen = { kind:"Mia", gross:"Herr Krause", frau:"Frau Krause", k1:"Emma", k2:"Ben",
+              lehrer:"Frau Meier", freund:"ein Mitschüler", oma:"Oma Hilde", f1:"Tom", f2:"Lisa" };
+let ortId = "cafe", ortIndex = 0;
+let tagId = "wochenende";
+let ablauf = TAGE.wochenende.ablauf;
+let leben = 3, index = 0, punkte = 0, merker = {};
+let zustand = "start";
+let wahlIndex = 0, tagIndex = 0, opferIndex = 0, opferId = "gross";
+
+let szene = null, auftrag = null, zeitInfo = null, spieler = null, wachen = [], restZeit = 0, gnade = 0;
+const tasten = {};
+
+function T(s) {
+  return s.replace(/\{OMA\}/g, namen.oma)
+          .replace(/\{F1\}/g, namen.f1)
+          .replace(/\{F2\}/g, namen.f2)
+          .replace(/\{G\}/g,  namen.gross)
+          .replace(/\{O\}/g,  namen.opfer   || namen.gross)
+          .replace(/\{A\}/g,  namen.anderes || namen.k2)
+          .replace(/\{L\}/g,  namen.lehrer)
+          .replace(/\{F\}/g,  namen.frau)
+          .replace(/\{K1\}/g, namen.k1)
+          .replace(/\{K2\}/g, namen.k2)
+          .replace(/\{K\}/g,  namen.kind);
+}
+
+const screens = ["s-start","s-familie","s-ort","s-opfer","s-schwer","s-brief","s-wahl","s-folge","s-erwischt","s-ende"];
+function zeige(id) { screens.forEach(s => document.getElementById(s).classList.toggle("an", s === id)); }
+function versteckeAlles() { screens.forEach(s => document.getElementById(s).classList.remove("an")); }
+
+/* ------------------------------------------------------------ Tag aussuchen */
+function zeichneTagWahl() {
+  const box = document.getElementById("tag-karten");
+  box.innerHTML = "";
+  TAG_IDS.forEach((id, i) => {
+    const t = TAGE[id];
+    const d = document.createElement("div");
+    d.className = "karte" + (i === tagIndex ? " aktiv" : "");
+    const em = document.createElement("span"); em.className = "em"; em.textContent = t.emoji;
+    const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = t.name;
+    const un = document.createElement("span"); un.className = "un";
+    un.textContent = t.unter + " (" + t.ablauf.length + " Streiche)";
+    d.appendChild(em); d.appendChild(tx); d.appendChild(un);
+    d.onclick = () => { tagIndex = i; zeichneTagWahl(); tagWaehlen(); };
+    box.appendChild(d);
+  });
+}
+
+function tagWaehlen() {
+  audioStart();
+  namen.kind  = (document.getElementById("in-kind").value  || "Kind").trim();
+  namen.gross = (document.getElementById("in-gross").value || "Der Erwachsene").trim();
+  tagId  = TAG_IDS[tagIndex];
+  ablauf = TAGE[tagId].ablauf;
+  document.querySelector(".nur-oma").classList.toggle("an", tagId === "oma");
+  zustand = "familie";
+  zeige("s-familie");
+}
+
+function familieFertig() {
+  namen.frau = (document.getElementById("in-frau").value || "Seine Frau").trim();
+  namen.k1   = (document.getElementById("in-k1").value   || "Emma").trim();
+  namen.k2   = (document.getElementById("in-k2").value   || "Ben").trim();
+  if (tagId === "oma") {
+    // Am Oma-Tag gibt es kein Opfer-Menue: erst die Oma, dann die Freunde.
+    namen.oma = (document.getElementById("in-oma").value || "Oma").trim();
+    opferId = "oma";
+    namen.opfer = namen.oma;
+    namen.anderes = namen.k1;
+    ablauf = baueAblauf();
+    zustand = "schwierigkeit";
+    zeichneSchwerWahl();
+    zeige("s-schwer");
+    return;
+  }
+  zustand = "opfer";
+  zeichneOpferWahl();
+  zeige("s-opfer");
+}
+
+/* --------------------------------------------- Oma-Tag: Ort aussuchen */
+function zeichneOrtWahl() {
+  const box = document.getElementById("ort-karten");
+  box.innerHTML = "";
+  ORT_IDS.forEach((id, i) => {
+    const o = ORTE[id];
+    const d = document.createElement("div");
+    d.className = "karte" + (i === ortIndex ? " aktiv" : "");
+    const em = document.createElement("span"); em.className = "em"; em.textContent = o.emoji;
+    const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = o.name;
+    const un = document.createElement("span"); un.className = "un"; un.textContent = o.unter;
+    d.appendChild(em); d.appendChild(tx); d.appendChild(un);
+    d.onclick = () => { ortIndex = i; zeichneOrtWahl(); ortFertig(); };
+    box.appendChild(d);
+  });
+}
+
+function ortFertig() {
+  ortId = ORT_IDS[ortIndex];
+  ablauf = baueAblauf();
+  zustand = "schwierigkeit";
+  zeichneSchwerWahl();
+  zeige("s-schwer");
+}
+
+/* --------------------------------------------------------- Opfer aussuchen */
+const OPFER_IDS = ["gross", "frau", "k1", "k2"];
+const OPFER_UNTER = { gross:"Der Papa", frau:"Die Mama", k1:"Das erste Kind", k2:"Das zweite Kind" };
+
+function zeichneOpferWahl() {
+  const box = document.getElementById("opfer-karten");
+  box.innerHTML = "";
+  OPFER_IDS.forEach((id, i) => {
+    const d = document.createElement("div");
+    d.className = "karte klein-karte" + (i === opferIndex ? " aktiv" : "");
+    const em = document.createElement("span"); em.className = "em"; em.textContent = WACHTYP[id].emoji;
+    const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = namen[id];
+    const un = document.createElement("span"); un.className = "un"; un.textContent = OPFER_UNTER[id];
+    d.appendChild(em); d.appendChild(tx); d.appendChild(un);
+    d.onclick = () => { opferIndex = i; zeichneOpferWahl(); opferFertig(); };
+    box.appendChild(d);
+  });
+}
+
+function istKind(id) { return id === "k1" || id === "k2"; }
+
+/* Der Tagesplan haengt vom Opfer ab: Kinder gehen in die Schule und in die Pause. */
+function baueAblauf() {
+  const k = istKind(opferId);
+  return TAGE[tagId].ablauf
+    .filter(e => !e.nur || (e.nur === "kind") === k)
+    .map(e => (k && e.idKind) ? { name:e.name, tint:e.tint, musik:e.musik, id:e.idKind } : e)
+    .map(e => e.id === "freunde"
+      ? { name:ORTE[ortId].zeit, tint:ORTE[ortId].tint, musik:ORTE[ortId].musik, id:ortId } : e);
+}
+
+function opferFertig() {
+  opferId = OPFER_IDS[opferIndex];
+  namen.opfer   = namen[opferId];
+  namen.anderes = opferId === "k1" ? namen.k2 : namen.k1;
+  ablauf = baueAblauf();
+  zustand = "schwierigkeit";
+  zeichneSchwerWahl();
+  zeige("s-schwer");
+}
+
+/* -------------------------------------------------- Schwierigkeit aussuchen */
+function zeichneSchwerWahl() {
+  const box = document.getElementById("schwer-karten");
+  box.innerHTML = "";
+  SCHWER_IDS.forEach((id, i) => {
+    const s = SCHWIERIGKEIT[id];
+    const d = document.createElement("div");
+    d.className = "karte" + (i === schwerIndex ? " aktiv" : "");
+    const em = document.createElement("span"); em.className = "em"; em.textContent = s.emoji;
+    const tx = document.createElement("span"); tx.className = "tx";
+    tx.textContent = s.name + " – " + s.alter;
+    const un = document.createElement("span"); un.className = "un"; un.textContent = s.unter;
+    d.appendChild(em); d.appendChild(tx); d.appendChild(un);
+    d.onclick = () => { waehleSchwer(i); spielStarten(); };
+    box.appendChild(d);
+  });
+  document.getElementById("zeit-zeile").textContent =
+    "⏱ Zeit pro Streich: " + zeitProSzene + " Sekunden";
+}
+
+/* Schwierigkeit wechseln setzt die Zeit auf den passenden Vorschlag zurueck. */
+function waehleSchwer(i) {
+  schwerIndex = i;
+  zeitProSzene = SCHWIERIGKEIT[SCHWER_IDS[i]].zeit;
+  zeichneSchwerWahl();
+}
+
+function zeitAendern(schritte) {
+  zeitProSzene = Math.max(ZEIT_MIN, Math.min(ZEIT_MAX, zeitProSzene + schritte * ZEIT_SCHRITT));
+  zeichneSchwerWahl();
+}
+
+function spielStarten() {
+  schwerId = SCHWER_IDS[schwerIndex];
+  leben = S().leben; index = 0; punkte = 0; merker = {};
+  starteSzene(true);
+}
+
+/* ------------------------------------------------------------------- Level
+   Level 1: nur er.  Dann kommt die Frau dazu, dann Kind 1, dann Kind 2.
+   Im allerletzten Level ist die ganze Familie da - und alle sind schneller. */
+const REIHENFOLGE = ["gross", "frau", "k1", "k2"];
+
+function werPasstAuf(i, anzahl, maxWachen) {
+  let stufe;
+  if (i === anzahl - 1) stufe = 4;                 // Finale: alle
+  else {
+    const p = i / (anzahl - 1);
+    stufe = p < 0.20 ? 1 : p < 0.45 ? 2 : p < 0.72 ? 3 : 4;
+  }
+  // Das Opfer ist immer dabei - es faengt sogar mit ihm an.
+  const basis = auftrag.wachOrdnung || szene.wachOrdnung ||
+                (tagId === "oma" ? OMA_ORDNUNG : REIHENFOLGE);
+  const reihe = (basis.includes(opferId) ? [opferId] : [])
+                  .concat(basis.filter(t => t !== opferId))
+                  .filter(t => routeFuer(t));
+  return reihe.slice(0, Math.min(stufe, maxWachen || 4));
+}
+
+/* Die Oma laeuft in den normalen Raeumen den Weg vom Papa. */
+function routeFuer(typ) {
+  if (typ === "oma") return auftrag.routeOma || szene.routen.oma || szene.routen.gross;
+  return szene.routen[typ];
+}
+
+/* Welche Streiche gelten? Standard = die fuer den Papa, sonst das eigene Set. */
+function opferAuftrag(raum) {
+  if (istKind(opferId) && raum.kind) return raum.kind;
+  if (raum[opferId]) return raum[opferId];
+  return raum;
+}
+
+/* --------------------------------------------------------------- Szenenlauf */
+function starteSzene(neu) {
+  zeitInfo = ablauf[index];
+  szene = RAEUME[zeitInfo.id];
+  auftrag = opferAuftrag(szene);
+  namen.opfer = szene.opferText ? T(szene.opferText) : namen[opferId];
+  spieler ={ x: szene.spielerStart.x, y: szene.spielerStart.y, r: 17 };
+
+  const finale = (index === ablauf.length - 1);
+  const s = S();
+  const maxHier = Math.min(szene.maxWachen || 4, s.maxWachen);
+  wachen = werPasstAuf(index, ablauf.length, maxHier).map(typ => {
+    const d = WACHTYP[typ];
+    const route = routeFuer(typ);
+    const schnell = (finale ? 1.15 : 1) * s.tempo;
+    return {
+      typ: typ, d: d, route: route, name: namen[typ],
+      tempo: d.tempo * schnell,
+      dreh:  d.dreh * (finale ? 1.15 : 1) * s.dreh,
+      reich: d.reich * s.sicht,
+      weite: d.weite * s.weite,
+      x: route[0].x, y: route[0].y,
+      wp: 1 % route.length, blick: 0, zielBlick: 0,
+      pause: 0, naechsteDrehung: 3.2 + Math.random() * 2.6
+    };
+  });
+
+  restZeit = zeitProSzene;
+  gnade = s.gnade;
+  musikSetzen(zeitInfo.musik);
+
+  if (!neu) { zustand = "spiel"; versteckeAlles(); }
+  else if (auftrag.vorspann && merker[auftrag.vorspann.wenn]) {
+    zustand = "vorspann";
+    document.getElementById("folge-emoji").textContent = auftrag.vorspann.emoji;
+    document.getElementById("folge-text").textContent = T(auftrag.vorspann.text);
+    zeige("s-folge");
+  } else zeigeBrief();
+}
+
+function zeigeBrief() {
+  document.getElementById("brief-titel").textContent = zeitInfo.name + " – " + szene.raum;
+  document.getElementById("brief-emoji").textContent = auftrag.emoji || szene.emoji;
+  document.getElementById("brief-text").textContent = T(auftrag.aufgabe);
+  const finale = (index === ablauf.length - 1);
+  document.getElementById("brief-wer").textContent =
+    (finale ? "LETZTES LEVEL - alle passen auf und sind schnell! " : "") +
+    "Aufpassen: " + wachen.map(w => w.d.emoji + " " + w.name).join("   ");
+  zustand = "brief";
+  zeige("s-brief");
+}
+
+function weiter() {
+  if (zustand === "vorspann") zeigeBrief();
+  else naechsteSzene();
+}
+
+function naechsteSzene() {
+  index++;
+  if (index >= ablauf.length) { endeZeigen(true); return; }
+  starteSzene(true);
+}
+
+function endeZeigen(gewonnen) {
+  zustand = "ende";
+  const alle = ablauf.length;
+  const t = document.getElementById("ende-titel");
+  const e = document.getElementById("ende-emoji");
+  const x = document.getElementById("ende-text");
+  if (gewonnen) {
+    t.textContent = punkte === alle ? "PERFEKTER TAG!" : "Der Tag ist rum!";
+    e.textContent = punkte === alle ? "\u{1F3C6}" : "\u{1F319}";
+    x.textContent = T("Von morgens bis nachts: {K} hat " + punkte + " von " + alle + " Streichen geschafft!" +
+      (punkte === alle ? " Kein einziger daneben - und keiner aus der Familie hat was gemerkt." : ""));
+  } else {
+    t.textContent = "3 Mal erwischt!";
+    e.textContent = "\u{1F62C}";
+    x.textContent = T("Die Familie hat {K} geschnappt. Geschaffte Streiche: " + punkte + " von " + alle + ".");
+  }
+  zeige("s-ende");
+}
+
+/* ------------------------------------------------------------------ Tasten */
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" && e.key !== "Enter") return;
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)) e.preventDefault();
+  tasten[e.key] = true;
+  if (e.key === "m" || e.key === "M") { musikUmschalten(); return; }
+
+  if (zustand === "start") {
+    if (e.key === "ArrowLeft")  { tagIndex = Math.max(0, tagIndex - 1); zeichneTagWahl(); }
+    if (e.key === "ArrowRight") { tagIndex = Math.min(TAG_IDS.length - 1, tagIndex + 1); zeichneTagWahl(); }
+    if (e.key === " " || e.key === "Enter") tagWaehlen();
+  } else if (zustand === "familie") {
+    if (e.key === " " || e.key === "Enter") familieFertig();
+  } else if (zustand === "ort") {
+    if (e.key === "ArrowLeft")  { ortIndex = 0; zeichneOrtWahl(); }
+    if (e.key === "ArrowRight") { ortIndex = 1; zeichneOrtWahl(); }
+    if (e.key === " " || e.key === "Enter") ortFertig();
+  } else if (zustand === "opfer") {
+    if (e.key === "ArrowLeft")  { opferIndex = Math.max(0, opferIndex - 1); zeichneOpferWahl(); }
+    if (e.key === "ArrowRight") { opferIndex = Math.min(OPFER_IDS.length - 1, opferIndex + 1); zeichneOpferWahl(); }
+    if (e.key === " " || e.key === "Enter") opferFertig();
+  } else if (zustand === "schwierigkeit") {
+    if (e.key === "ArrowLeft")  waehleSchwer(Math.max(0, schwerIndex - 1));
+    if (e.key === "ArrowRight") waehleSchwer(Math.min(SCHWER_IDS.length - 1, schwerIndex + 1));
+    if (e.key === "ArrowUp")    zeitAendern(+1);
+    if (e.key === "ArrowDown")  zeitAendern(-1);
+    if (e.key === " " || e.key === "Enter") spielStarten();
+  } else if (zustand === "spiel") {
+    if (e.key === " ") versuchStreich();
+  } else if (zustand === "wahl") {
+    if (e.key === "ArrowLeft")  { wahlIndex = 0; zeichneWahl(); }
+    if (e.key === "ArrowRight") { wahlIndex = 1; zeichneWahl(); }
+    if (e.key === " ") waehle(wahlIndex);
+  } else if (e.key === " ") {
+    if (zustand === "brief")         { zustand = "spiel"; versteckeAlles(); }
+    else if (zustand === "folge" ||
+             zustand === "vorspann") { weiter(); }
+    else if (zustand === "erwischt") { starteSzene(false); }
+    else if (zustand === "ende")     { neustart(); }
+  }
+});
+addEventListener("keyup", e => { tasten[e.key] = false; });
+
+/* ------------------------------------------------------------ Streich-Wahl */
+function versuchStreich() {
+  if (Math.hypot(spieler.x - auftrag.ziel.x, spieler.y - auftrag.ziel.y) > 58) return;
+  zustand = "wahl"; wahlIndex = 0;
+  zeichneWahl(); zeige("s-wahl");
+}
+
+function zeichneWahl() {
+  const box = document.getElementById("wahl-karten");
+  box.innerHTML = "";
+  auftrag.optionen.forEach((o, i) => {
+    const d = document.createElement("div");
+    d.className = "karte" + (i === wahlIndex ? " aktiv" : "");
+    const em = document.createElement("span"); em.className = "em"; em.textContent = o.emoji;
+    const tx = document.createElement("span"); tx.className = "tx"; tx.textContent = o.text;
+    d.appendChild(em); d.appendChild(tx);
+    d.onclick = () => waehle(i);
+    box.appendChild(d);
+  });
+}
+
+function waehle(i) {
+  const o = auftrag.optionen[i];
+  punkte++;
+  if (o.merke) merker[o.merke] = true;
+  erfolgKlang();
+  zustand = "folge";
+  document.getElementById("folge-emoji").textContent = o.folgeEmoji;
+  document.getElementById("folge-text").textContent = T(o.folge);
+  zeige("s-folge");
+}
+
+function erwischt(wer) {
+  leben--;
+  erwischtKlang();
+  zustand = "erwischt";
+  if (leben <= 0) { endeZeigen(false); return; }
+  document.getElementById("erwischt-text").textContent =
+    T(wer.name + " hat sich umgedreht und {K} mitten im Raum gesehen!");
+  document.getElementById("erwischt-leben").textContent = "Du hast noch " + leben + " Leben.";
+  zeige("s-erwischt");
+}
+
+function zeitAbgelaufen() {
+  zustand = "folge";
+  document.getElementById("folge-emoji").textContent = "⏰";
+  document.getElementById("folge-text").textContent =
+    T("Zu langsam! {O} ist schon fertig - dieser Streich hat nicht geklappt.");
+  zeige("s-folge");
+}
+
+/* -------------------------------------------------------------- Bewegung */
+function winkelDiff(a, b) {
+  let d = a - b;
+  while (d >  Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
+
+function imKegel(w, px, py) {
+  const dx = px - w.x, dy = py - w.y;
+  if (Math.hypot(dx, dy) > w.reich) return false;
+  return Math.abs(winkelDiff(Math.atan2(dy, dx), w.blick)) < w.weite;
+}
+
+function istVersteckt() {
+  return szene.moebel.some(m =>
+    spieler.x > m.x && spieler.x < m.x + m.w &&
+    spieler.y > m.y && spieler.y < m.y + m.h);
+}
+
+function bewegeWache(w, dt) {
+  if (w.pause > 0) { w.pause -= dt; }
+  else {
+    w.naechsteDrehung -= dt;
+    if (w.naechsteDrehung <= 0) {
+      w.pause = 2.2;
+      w.naechsteDrehung = 3.4 + Math.random() * 2.6;
+      w.zielBlick = Math.random() < 0.5
+        ? Math.atan2(spieler.y - w.y, spieler.x - w.x)
+        : Math.random() * Math.PI * 2;
+    } else {
+      const z2 = w.route[w.wp];
+      const dx = z2.x - w.x, dy = z2.y - w.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 8) w.wp = (w.wp + 1) % w.route.length;
+      else {
+        w.x += (dx / dist) * w.tempo * dt * 60;
+        w.y += (dy / dist) * w.tempo * dt * 60;
+        w.zielBlick = Math.atan2(dy, dx);
+      }
+    }
+  }
+  const diff = winkelDiff(w.zielBlick, w.blick);
+  const maxDreh = w.dreh * dt;
+  w.blick += Math.max(-maxDreh, Math.min(maxDreh, diff));
+}
+
+function update(dt) {
+  if (zustand !== "spiel") return;
+
+  restZeit -= dt;
+  if (restZeit <= 0) { zeitAbgelaufen(); return; }
+  if (gnade > 0) gnade -= dt;
+
+  const v = 235 * S().spielerTempo * dt;
+  if (tasten.ArrowLeft)  spieler.x -= v;
+  if (tasten.ArrowRight) spieler.x += v;
+  if (tasten.ArrowUp)    spieler.y -= v;
+  if (tasten.ArrowDown)  spieler.y += v;
+  spieler.x = Math.max(RAND + spieler.r, Math.min(W - RAND - spieler.r, spieler.x));
+  spieler.y = Math.max(RAND + 60,        Math.min(H - RAND - spieler.r, spieler.y));
+
+  wachen.forEach(w => bewegeWache(w, dt));
+
+  if (gnade <= 0 && !istVersteckt()) {
+    const seher = wachen.find(w => imKegel(w, spieler.x, spieler.y));
+    if (seher) erwischt(seher);
+  }
+}
+
+/* -------------------------------------------------------------- Zeichnen */
+let puls = 0;
+function draw() {
+  if (!szene) return;
+  puls += 0.06;
+
+  ctx.fillStyle = szene.wand;  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = szene.boden; ctx.fillRect(RAND, RAND, W - 2*RAND, H - 2*RAND);
+
+  ctx.strokeStyle = "rgba(0,0,0,.05)"; ctx.lineWidth = 2;
+  for (let x = RAND; x < W - RAND; x += 60) { ctx.beginPath(); ctx.moveTo(x, RAND); ctx.lineTo(x, H-RAND); ctx.stroke(); }
+  for (let y = RAND; y < H - RAND; y += 60) { ctx.beginPath(); ctx.moveTo(RAND, y); ctx.lineTo(W-RAND, y); ctx.stroke(); }
+
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const versteckt = istVersteckt();
+
+  szene.moebel.forEach(m => {
+    const drin = spieler.x > m.x && spieler.x < m.x + m.w &&
+                 spieler.y > m.y && spieler.y < m.y + m.h;
+    ctx.fillStyle = m.farbe;
+    rundRect(m.x, m.y, m.w, m.h, 14); ctx.fill();
+    ctx.strokeStyle = drin ? "#2ecc71" : "rgba(255,255,255,.75)";
+    ctx.lineWidth = drin ? 6 : 3;
+    rundRect(m.x, m.y, m.w, m.h, 14); ctx.stroke();
+    ctx.font = "42px serif"; ctx.fillStyle = "#000";
+    ctx.fillText(m.emoji, m.x + m.w/2, m.y + m.h/2 - 8);
+    ctx.font = "bold 14px Trebuchet MS";
+    ctx.fillStyle = drin ? "#0a7a3d" : "rgba(0,0,0,.55)";
+    ctx.fillText(drin ? "VERSTECKT!" : m.label, m.x + m.w/2, m.y + m.h - 16);
+  });
+
+  // Alle Sichtkegel
+  wachen.forEach(w => {
+    const gefahr = !versteckt && imKegel(w, spieler.x, spieler.y);
+    const g = ctx.createRadialGradient(w.x, w.y, 10, w.x, w.y, w.reich);
+    g.addColorStop(0, gefahr ? "rgba(255,60,60,.55)" : "rgba(255,220,80,.40)");
+    g.addColorStop(1, gefahr ? "rgba(255,60,60,.05)" : "rgba(255,220,80,.03)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(w.x, w.y);
+    ctx.arc(w.x, w.y, w.reich, w.blick - w.weite, w.blick + w.weite);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Ziel
+  const zd = Math.hypot(spieler.x - auftrag.ziel.x, spieler.y - auftrag.ziel.y);
+  const sk = 1 + Math.sin(puls) * 0.12;
+  ctx.save();
+  ctx.translate(auftrag.ziel.x, auftrag.ziel.y); ctx.scale(sk, sk);
+  ctx.beginPath(); ctx.arc(0, 0, 34, 0, 7);
+  ctx.fillStyle = zd < 58 ? "rgba(46,204,113,.6)" : "rgba(255,255,255,.55)"; ctx.fill();
+  ctx.fillStyle = "#000"; ctx.font = "38px serif";
+  ctx.fillText(auftrag.ziel.emoji, 0, 2);
+  ctx.restore();
+  if (zd < 58) {
+    ctx.font = "bold 20px Trebuchet MS"; ctx.fillStyle = "#0a7a3d";
+    ctx.fillText("LEERTASTE!", auftrag.ziel.x, auftrag.ziel.y - 54);
+  }
+
+  // Familie
+  wachen.forEach(w => {
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.d.r, 0, 7);
+    ctx.fillStyle = w.d.farbe; ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = w.d.rand; ctx.stroke();
+    ctx.fillStyle = "#000"; ctx.font = w.d.schrift + "px serif";
+    ctx.fillText(w.d.emoji, w.x, w.y + 1);
+    if (w.pause > 0) { ctx.font = "30px serif"; ctx.fillText("❗", w.x, w.y - w.d.r - 16); }
+    schrift(w.name, w.x, w.y + w.d.r + 15);
+  });
+
+  // Spieler
+  ctx.globalAlpha = versteckt ? 0.4 : 1;
+  ctx.beginPath(); ctx.arc(spieler.x, spieler.y, 21, 0, 7);
+  ctx.fillStyle = "#5ab0e0"; ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = "#1e5c85"; ctx.stroke();
+  ctx.fillStyle = "#000"; ctx.font = "26px serif";
+  ctx.fillText("\u{1F9D2}", spieler.x, spieler.y + 1);
+  ctx.globalAlpha = 1;
+  schrift(namen.kind, spieler.x, spieler.y + 37);
+
+  // Tageszeit
+  ctx.fillStyle = zeitInfo.tint;
+  ctx.fillRect(RAND, RAND, W - 2*RAND, H - 2*RAND);
+
+  // Kopfzeile
+  ctx.fillStyle = "rgba(20,26,48,.85)";
+  ctx.fillRect(RAND, RAND, W - 2*RAND, 48);
+  ctx.fillStyle = "#fff"; ctx.textAlign = "left";
+  // Lange Texte (oder lange Namen) werden kleiner, damit sie nicht in die Herzen laufen.
+  const kopf = zeitInfo.name + "  -  " + T(auftrag.aufgabe);
+  let fs = 19;
+  ctx.font = "bold " + fs + "px Trebuchet MS";
+  while (fs > 12 && ctx.measureText(kopf).width > W - 2*RAND - 32 - 175) {
+    fs--; ctx.font = "bold " + fs + "px Trebuchet MS";
+  }
+  ctx.fillText(kopf, RAND + 16, RAND + 22);
+  ctx.textAlign = "right"; ctx.font = "19px serif";
+  ctx.fillText("❤".repeat(leben) + "   Streich " + (index + 1) + "/" + ablauf.length,
+               W - RAND - 16, RAND + 22);
+
+  const bw = (W - 2*RAND - 32) * Math.max(0, restZeit / zeitProSzene);
+  ctx.fillStyle = "rgba(0,0,0,.3)";
+  ctx.fillRect(RAND + 16, RAND + 34, W - 2*RAND - 32, 8);
+  ctx.fillStyle = restZeit < 8 ? "#e74c3c" : "#2ecc71";
+  ctx.fillRect(RAND + 16, RAND + 34, bw, 8);
+  ctx.textAlign = "center";
+}
+
+function schrift(text, x, y) {
+  ctx.font = "bold 15px Trebuchet MS";
+  ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255,255,255,.9)";
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = "#1b2340";
+  ctx.fillText(text, x, y);
+}
+
+function rundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* --------------------------------------------------------------- Schleife */
+let last = performance.now();
+function schleife(t) {
+  const dt = Math.min(0.05, (t - last) / 1000);
+  last = t;
+  update(dt);
+  draw();
+  requestAnimationFrame(schleife);
+}
+requestAnimationFrame(schleife);
+
+/* ---------------------------------------------------------------- Knoepfe */
+document.getElementById("btn-familie").onclick  = () => familieFertig();
+document.getElementById("btn-brief").onclick    = () => { zustand = "spiel"; versteckeAlles(); };
+document.getElementById("btn-folge").onclick    = () => weiter();
+document.getElementById("btn-erwischt").onclick = () => starteSzene(false);
+document.getElementById("btn-ende").onclick     = () => neustart();
+
+function neustart() {
+  zustand = "start";
+  szene = null; mood = null;
+  ctx.fillStyle = "#1b2340"; ctx.fillRect(0, 0, W, H);
+  zeichneTagWahl();
+  zeige("s-start");
+}
+
+zeichneTagWahl();
+ctx.fillStyle = "#1b2340"; ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>
